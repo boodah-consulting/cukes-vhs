@@ -1,0 +1,309 @@
+# golangci-lint v2 configuration for cukes-vhs
+# Linters: 51 enabled | Formatters: 2
+version: "2"
+
+# ---------------------------------------------------------------------------
+# Run
+# ---------------------------------------------------------------------------
+run:
+  tests: true
+  allow-parallel-runners: true
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+output:
+  formats:
+    text:
+      path: stdout
+      color: true
+
+# ---------------------------------------------------------------------------
+# Linters
+# ---------------------------------------------------------------------------
+linters:
+  default: none
+  enable:
+    # ── Go defaults ────────────────────────────────────────────────────────
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+    # ── Idioms & style ─────────────────────────────────────────────────────
+    - revive
+    - misspell
+    - whitespace
+    - godot
+    - nakedret
+    - dupword
+    - copyloopvar
+    - intrange
+    - perfsprint
+    - recvcheck
+
+    # ── Error handling ─────────────────────────────────────────────────────
+    - nilerr
+    - errorlint
+    - nilnil
+    - errname
+    - errchkjson
+
+    # ── Complexity & code quality ──────────────────────────────────────────
+    - gocyclo
+    - gocognit
+    - funlen
+    - lll
+    - nestif
+    - gocritic
+    - unconvert
+    - unparam
+    - dupl
+    - wastedassign
+    - dogsled
+    - predeclared
+    - forcetypeassert
+    - usestdlibvars
+
+    # ── Security ───────────────────────────────────────────────────────────
+    - gosec
+
+    # ── Architecture & imports ─────────────────────────────────────────────
+    - depguard
+    - gomoddirectives
+    - importas
+    - interfacebloat
+    - reassign
+    - gocheckcompilerdirectives
+
+    # ── Testing ────────────────────────────────────────────────────────────
+    - tparallel
+    - testifylint
+    - ginkgolinter
+    - thelper
+    - usetesting
+
+    # ── Comment hygiene ────────────────────────────────────────────────────
+    - godox
+    - forbidigo
+    - nolintlint
+
+    # ── Context ────────────────────────────────────────────────────────────
+    - contextcheck
+    - fatcontext
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Linter Settings (A1–A11)
+  # ─────────────────────────────────────────────────────────────────────────
+  settings:
+    # A1: errcheck — catch unchecked errors
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+      exclude-functions:
+        - io.Copy
+        - io.ReadAll
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (net/http.ResponseWriter).Write
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+
+    # A2: revive — Go style rules
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: var-declaration
+        - name: var-naming
+
+    # A3: gocritic — opinionated diagnostics
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+        - opinionated
+      disabled-checks:
+        - whyNoLint
+        - hugeParam
+
+    # A4: complexity thresholds
+    gocyclo:
+      min-complexity: 15
+
+    gocognit:
+      min-complexity: 20
+
+    funlen:
+      lines: 80
+      statements: 50
+
+    lll:
+      line-length: 160
+
+    nestif:
+      min-complexity: 5
+
+    # A5: errorlint — proper error wrapping
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+
+    # A6: gosec — security scanner
+    gosec:
+      excludes:
+        - G104
+      confidence: medium
+
+    # A7: godot — comment punctuation
+    godot:
+      scope: declarations
+      capital: true
+
+    # A8: nakedret — naked return threshold
+    nakedret:
+      max-func-lines: 30
+
+    # A9: depguard — dependency allowlist
+    depguard:
+      rules:
+        main:
+          allow:
+            - $gostd
+            - github.com/baphled/cukes-vhs
+            - github.com/cucumber/gherkin
+            - github.com/cucumber/messages
+            - github.com/onsi/ginkgo/v2
+            - github.com/onsi/gomega
+            - golang.org/x/tools
+
+    # A10: importas — import alias conventions
+    importas:
+      no-unaliased: false
+      alias: []
+
+    # A11: forbidigo — forbidden patterns
+    forbidigo:
+      forbid:
+        - p: '\.cukes-vhs'
+          msg: "do not reference .cukes-vhs directory in code; use configuration"
+
+    # ── Additional linter settings ─────────────────────────────────────────
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+
+    interfacebloat:
+      max: 5
+
+    dogsled:
+      max-blank-identifiers: 2
+
+    dupl:
+      threshold: 150
+
+    misspell:
+      locale: UK
+
+    godox:
+      keywords:
+        - FIXME
+        - HACK
+        - OPTIMIZE
+
+    unparam:
+      check-exported: false
+
+    ginkgolinter:
+      suppress-len-assertion: false
+      suppress-nil-assertion: false
+      suppress-err-assertion: false
+      suppress-compare-assertion: false
+      suppress-async-assertion: false
+      force-expect-to: true
+      validate-async-intervals: true
+      forbid-focus-container: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Exclusions
+  # ─────────────────────────────────────────────────────────────────────────
+  exclusions:
+    # C3: Generated files — skip all linters
+    generated: lax
+
+    # EXC0001–EXC0011: Standard false-positive suppressions
+    presets:
+      - comments
+      - std-error-handling
+      - common-false-positives
+
+    rules:
+      # C1: Test files — relaxed complexity and style requirements
+      - path: _test\.go
+        linters:
+          - dupl
+          - errcheck
+          - forcetypeassert
+          - funlen
+          - gocognit
+          - gocritic
+          - gocyclo
+          - godot
+          - lll
+          - nestif
+          - nolintlint
+          - revive
+          - unparam
+
+# ---------------------------------------------------------------------------
+# Formatters
+# ---------------------------------------------------------------------------
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/baphled/cukes-vhs
+
+# ---------------------------------------------------------------------------
+# Severity
+# ---------------------------------------------------------------------------
+severity:
+  default: warning
+  rules:
+    - linters:
+        - errcheck
+        - nilerr
+        - gosec
+        - depguard
+      severity: error
+    - linters:
+        - godot
+        - revive
+      severity: warning

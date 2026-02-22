@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# Commit message validation hook for cukes-vhs
+# Non-interactive — suitable for CI and AI-assisted commits
+#
+# Validates:
+#   1. Conventional commit format (type(scope): description)
+#   2. AI-Generated-By trailer format (AgentName (Model))
+#   3. Subject line length (max 72 characters)
+#   4. Body line length (max 100 characters)
+
+set -euo pipefail
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# --- Skip merge and revert commits ---
+if echo "$COMMIT_MSG" | head -1 | grep -qE '^(Merge|Revert) '; then
+  exit 0
+fi
+
+# --- Skip fixup and squash commits ---
+if echo "$COMMIT_MSG" | head -1 | grep -qE '^(fixup|squash)! '; then
+  exit 0
+fi
+
+# --- Extract header (first line) ---
+HEADER=$(echo "$COMMIT_MSG" | head -1)
+
+# --- Validate conventional commit format ---
+if ! echo "$HEADER" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\([a-z-]+\))?!?: .+'; then
+  echo "ERROR: Commit message must follow conventional commit format"
+  echo "  Format: type(scope): description"
+  echo "  Valid types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
+  echo "  Got: $HEADER"
+  exit 1
+fi
+
+# --- Validate subject line length ---
+HEADER_LEN=${#HEADER}
+if [ "$HEADER_LEN" -gt 72 ]; then
+  echo "WARNING: Subject line exceeds 72 characters ($HEADER_LEN chars)"
+  echo "  Recommended: keep subject line under 72 characters"
+  # Non-interactive: warn but do not block
+fi
+
+# --- Validate blank line after subject ---
+LINE_COUNT=$(echo "$COMMIT_MSG" | wc -l)
+if [ "$LINE_COUNT" -gt 1 ]; then
+  SECOND_LINE=$(echo "$COMMIT_MSG" | sed -n '2p')
+  if [ -n "$SECOND_LINE" ]; then
+    echo "WARNING: Second line should be blank (separates subject from body)"
+    # Non-interactive: warn but do not block
+  fi
+fi
+
+# --- Validate body line length ---
+if [ "$LINE_COUNT" -gt 2 ]; then
+  LINE_NUM=0
+  LONG_LINES=0
+  while IFS= read -r line; do
+    LINE_NUM=$((LINE_NUM + 1))
+    if [ "$LINE_NUM" -le 2 ]; then
+      continue
+    fi
+    # Skip trailer lines (Key: Value format)
+    if echo "$line" | grep -qE '^[A-Za-z-]+: '; then
+      continue
+    fi
+    if [ "${#line}" -gt 100 ]; then
+      LONG_LINES=$((LONG_LINES + 1))
+    fi
+  done <<< "$COMMIT_MSG"
+
+  if [ "$LONG_LINES" -gt 0 ]; then
+    echo "WARNING: $LONG_LINES body line(s) exceed 100 characters"
+    # Non-interactive: warn but do not block
+  fi
+fi
+
+# --- Validate AI-Generated-By trailer if present ---
+if echo "$COMMIT_MSG" | grep -q "AI-Generated-By:"; then
+  AI_TRAILER=$(echo "$COMMIT_MSG" | grep "AI-Generated-By:" | head -1)
+  if ! echo "$AI_TRAILER" | grep -qE '^AI-Generated-By: .+ \(.+\)$'; then
+    echo "ERROR: AI-Generated-By trailer must match format: AI-Generated-By: AgentName (Model)"
+    echo "  Got: $AI_TRAILER"
+    exit 1
+  fi
+fi
+
+# --- Validate Reviewed-By trailer if present ---
+if echo "$COMMIT_MSG" | grep -q "Reviewed-By:"; then
+  REVIEW_TRAILER=$(echo "$COMMIT_MSG" | grep "Reviewed-By:" | head -1)
+  if ! echo "$REVIEW_TRAILER" | grep -qE '^Reviewed-By: .+ \(.+\)$'; then
+    echo "ERROR: Reviewed-By trailer must match format: Reviewed-By: AgentName (Model)"
+    echo "  Got: $REVIEW_TRAILER"
+    exit 1
+  fi
+fi
+
+exit 0
