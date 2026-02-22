@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, next, 'feature/**', 'fix/**', 'refactor/**']
   pull_request:
@@ -104,6 +105,12 @@ jobs:
             -ldflags "-X main.version=$(cat VERSION)" \
             -o cukes-vhs-darwin-arm64 ./cmd/cukes-vhs
           chmod +x cukes-vhs-darwin-arm64
+      - name: Build for Linux (ARM64)
+        run: |
+          GOOS=linux GOARCH=arm64 go build \
+            -ldflags "-X main.version=$(cat VERSION)" \
+            -o cukes-vhs-linux-arm64 ./cmd/cukes-vhs
+          chmod +x cukes-vhs-linux-arm64
       - name: Build for Windows
         run: |
           GOOS=windows GOARCH=amd64 go build \
