@@ -1,0 +1,64 @@
+{
+  "branches": ["main"],
+  "repositoryUrl": "https://github.com/boodah-consulting/cukes-vhs",
+  "plugins": [
+    ["@semantic-release/commit-analyzer", {
+      "preset": "conventionalcommits",
+      "releaseRules": [
+        { "type": "feat", "release": "minor" },
+        { "type": "fix", "release": "patch" },
+        { "type": "perf", "release": "patch" },
+        { "type": "refactor", "release": "patch" },
+        { "type": "docs", "release": false },
+        { "type": "style", "release": false },
+        { "type": "test", "release": false },
+        { "type": "build", "release": "patch" },
+        { "type": "ci", "release": false },
+        { "type": "chore", "release": false },
+        { "type": "revert", "release": "patch" },
+        { "breaking": true, "release": "major" }
+      ]
+    }],
+    ["@semantic-release/release-notes-generator", {
+      "preset": "conventionalcommits",
+      "presetConfig": {
+        "header": "cukes-vhs Changelog",
+        "types": [
+          { "type": "feat", "section": "Features" },
+          { "type": "fix", "section": "Bug Fixes" },
+          { "type": "perf", "section": "Performance" },
+          { "type": "refactor", "section": "Refactoring" },
+          { "type": "docs", "section": "Documentation", "hidden": true },
+          { "type": "style", "section": "Style", "hidden": true },
+          { "type": "test", "section": "Tests", "hidden": true },
+          { "type": "build", "section": "Build System" },
+          { "type": "ci", "section": "CI", "hidden": true },
+          { "type": "chore", "section": "Miscellaneous", "hidden": true },
+          { "type": "revert", "section": "Reverts" }
+        ]
+      }
+    }],
+    ["@semantic-release/changelog", {
+      "changelogFile": "CHANGELOG.md"
+    }],
+    ["@semantic-release/exec", {
+      "prepareCmd": "echo ${nextRelease.version} > VERSION"
+    }],
+    ["@semantic-release/git", {
+      "assets": ["CHANGELOG.md", "VERSION", "package.json", "package-lock.json"],
+      "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+    }],
+    ["@semantic-release/github", {
+      "assets": [
+        { "path": "dist/cukes-vhs-linux-amd64", "label": "cukes-vhs-linux-amd64" },
+        { "path": "dist/cukes-vhs-linux-arm64", "label": "cukes-vhs-linux-arm64" },
+        { "path": "dist/cukes-vhs-darwin-amd64", "label": "cukes-vhs-darwin-amd64" },
+        { "path": "dist/cukes-vhs-darwin-arm64", "label": "cukes-vhs-darwin-arm64" },
+        { "path": "dist/cukes-vhs-windows-amd64.exe", "label": "cukes-vhs-windows-amd64.exe" }
+      ],
+      "successComment": false,
+      "failComment": false,
+      "releasedLabels": ["released"]
+    }]
+  ]
+}
