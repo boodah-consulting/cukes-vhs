@@ -99,6 +99,7 @@ func printGenerateFlags(out io.Writer) {
 	fmt.Fprintln(out, "  --config-source PATH Path to config tape file (default: config/config.tape, falls back to embedded)")
 	fmt.Fprintln(out, "  --verbose           Verbose output")
 	fmt.Fprintln(out, "  --timeout N         Per-tape render timeout in seconds (default: 120)")
+	fmt.Fprintln(out, "  --interactive      Run with interactive TUI")
 	fmt.Fprintln(out, "")
 }
 
@@ -112,6 +113,7 @@ func printRunFlags(out io.Writer) {
 	fmt.Fprintln(out, "  --output DIR        Output directory (required)")
 	fmt.Fprintln(out, "  --golden DIR        Golden baseline directory (default: demos/golden/)")
 	fmt.Fprintln(out, "  --timeout N         Per-tape render timeout in seconds (default: 120)")
+	fmt.Fprintln(out, "  --interactive      Run with interactive TUI")
 	fmt.Fprintln(out, "  --config-source PATH Path to config tape file (default: config/config.tape, falls back to embedded)")
 	fmt.Fprintln(out, "")
 }
@@ -135,6 +137,7 @@ func printExamples(out io.Writer) {
 	fmt.Fprintln(out, "  vhsgen list --steps --json")
 	fmt.Fprintln(out, "  vhsgen generate --all --features features/ --scenarios-dir demos/scenarios/ --output /tmp/tapes/")
 	fmt.Fprintln(out, "  vhsgen generate --feature onboarding --output /tmp/test/")
+	fmt.Fprintln(out, "  vhsgen generate --interactive --all --output /tmp/tapes/   # Interactive mode")
 	fmt.Fprintln(out, "  vhsgen run --all --output /tmp/tapes/ --golden demos/golden/")
 	fmt.Fprintln(out, "  vhsgen run --feature onboarding --output /tmp/tapes/")
 	fmt.Fprintln(out, "  vhsgen update-baseline --all --output /tmp/tapes/ --golden demos/golden/")

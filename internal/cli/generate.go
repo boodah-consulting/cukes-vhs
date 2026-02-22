@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/boodah-consulting/cukes-vhs/internal/cli/tui"
 	"github.com/boodah-consulting/cukes-vhs/internal/vhsgen"
 )
 
@@ -14,6 +15,21 @@ func runGenerate(args []string, out io.Writer, errOut io.Writer) int {
 	opts, err := parseGenerateFlags(args, errOut)
 	if err != nil {
 		return 1
+	}
+
+	// Run with TUI if --interactive is set
+	if *opts.interactive {
+		if err := tui.RunGenerate(
+			*opts.featuresDir,
+			*opts.scenariosDir,
+			*opts.outputDir,
+			*opts.configSource,
+			*opts.timeoutSec,
+		); err != nil {
+			fmt.Fprintf(errOut, "Error: %v\n", err)
+			return 1
+		}
+		return 0
 	}
 
 	fmt.Fprintf(out, "Parsing...\n")
@@ -65,6 +81,7 @@ type generateOptions struct {
 	configSource   *string
 	verbose        *bool
 	timeoutSec     *int
+	interactive    *bool
 }
 
 func parseGenerateFlags(args []string, errOut io.Writer) (*generateOptions, error) {
@@ -76,9 +93,10 @@ func parseGenerateFlags(args []string, errOut io.Writer) (*generateOptions, erro
 		featuresDir:    fs.String("features", "features/", "Directory containing .feature files"),
 		scenariosDir:   fs.String("scenarios-dir", "demos/scenarios/", "Directory containing VHS-only .feature files"),
 		outputDir:      fs.String("output", "", "Output directory (required)"),
-		configSource:   fs.String("config-source", "demos/config.tape", "Path to config tape file"),
+		configSource:   fs.String("config-source", "config/config.tape", "Path to config tape file"),
 		verbose:        fs.Bool("verbose", false, "Verbose output"),
 		timeoutSec:     fs.Int("timeout", 120, "Per-tape render timeout in seconds"),
+		interactive:    fs.Bool("interactive", false, "Run with interactive TUI"),
 	}
 
 	if err := fs.Parse(normaliseArgs(args)); err != nil {
