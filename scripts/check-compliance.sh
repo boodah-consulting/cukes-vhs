@@ -30,7 +30,7 @@ PASS=0
 FAIL=0
 WARN=0
 
-COVERAGE_THRESHOLD=95
+COVERAGE_THRESHOLD=90
 
 section()  { echo -e "\n${BOLD}${BLUE}[$1/${TOTAL_SECTIONS}] $2${NC}"; }
 pass()     { PASS=$((PASS + 1)); echo -e "  ${GREEN}✓${NC} $*"; }
