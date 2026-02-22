@@ -12,7 +12,7 @@ import (
 )
 
 func featuresDir() string {
-	dir := filepath.Join("..", "..", "features")
+	dir := filepath.Join("testdata", "features")
 	if _, err := os.Stat(dir); err != nil {
 		return ""
 	}
@@ -88,7 +88,7 @@ var _ = Describe("ParseFeatureDir", func() {
 			dir = featuresDir()
 		})
 
-		It("includes Background steps in SetupSteps for Manage Skills scenarios", func() {
+		It("includes Background steps in SetupSteps for Git Workflows scenarios", func() {
 			if dir == "" {
 				Expect(dir).NotTo(BeEmpty(), "features directory not found")
 			}
@@ -97,11 +97,11 @@ var _ = Describe("ParseFeatureDir", func() {
 
 			var skillsScenarios []vhsgen.ScenarioIR
 			for _, ir := range results {
-				if ir.Feature == "Manage Skills" {
+				if ir.Feature == "Git Workflows" {
 					skillsScenarios = append(skillsScenarios, ir)
 				}
 			}
-			Expect(skillsScenarios).NotTo(BeEmpty(), "expected scenarios from Manage Skills feature")
+			Expect(skillsScenarios).NotTo(BeEmpty(), "expected scenarios from Git Workflows feature")
 
 			for _, ir := range skillsScenarios {
 				Expect(ir.SetupSteps).NotTo(BeEmpty(),
@@ -119,12 +119,12 @@ var _ = Describe("ParseFeatureDir", func() {
 			}
 		})
 
-		It("places Background step first in SetupSteps for Manage Skills", func() {
+		It("places Background step first in SetupSteps for Git Workflows", func() {
 			results, err := vhsgen.ParseFeatureDir(dir, vhsgen.SourceBusiness)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, ir := range results {
-				if ir.Feature != "Manage Skills" || len(ir.SetupSteps) == 0 {
+				if ir.Feature != "Git Workflows" || len(ir.SetupSteps) == 0 {
 					continue
 				}
 				Expect(ir.SetupSteps[0].Text).To(Equal("I am on the main menu"),

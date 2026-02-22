@@ -176,7 +176,7 @@ func deriveScenario(outputDir, asciiPath string) string {
 	rel = strings.TrimSuffix(rel, ".ascii")
 	rel = strings.ReplaceAll(rel, string(filepath.Separator), "-")
 
-	return slugify(rel)
+	return Slugify(rel)
 }
 
 // ensurePlaceholderGIF creates an empty placeholder GIF to satisfy SaveBaseline's GIF path requirement.
@@ -186,7 +186,7 @@ func ensurePlaceholderGIF(goldenDir, scenario string) (string, error) {
 		return "", fmt.Errorf("creating placeholder dir: %w", err)
 	}
 
-	gifPath := filepath.Join(placeholderDir, slugify(scenario)+".gif")
+	gifPath := filepath.Join(placeholderDir, Slugify(scenario)+".gif")
 	if err := os.WriteFile(gifPath, []byte{}, 0o600); err != nil {
 		return "", fmt.Errorf("writing placeholder GIF: %w", err)
 	}

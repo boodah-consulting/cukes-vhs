@@ -46,7 +46,7 @@ var _ = Describe("GenerateTape", func() {
 
 			config := vhsgen.GeneratorConfig{
 				OutputDir:        "demos/vhs/generated",
-				ConfigSourcePath: "demos/vhs/config.tape",
+				ConfigSourcePath: "config/config.tape",
 				SleepDuration:    "2s",
 			}
 
@@ -56,7 +56,7 @@ var _ = Describe("GenerateTape", func() {
 		})
 
 		It("contains the Source directive", func() {
-			Expect(result).To(ContainSubstring("Source demos/vhs/config.tape"))
+			Expect(result).To(ContainSubstring("Source /tmp/vhsgen-config.tape"))
 		})
 
 		It("contains the GIF output directive", func() {
@@ -224,7 +224,7 @@ var _ = Describe("GenerateTape", func() {
 			result, err := vhsgen.GenerateTape(scenario, vhsgen.GeneratorConfig{OutputDir: "out"})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(result).To(ContainSubstring("Source demos/vhs/config.tape"))
+			Expect(result).To(ContainSubstring("Source /tmp/vhsgen-config.tape"))
 			Expect(result).To(ContainSubstring("Sleep 2s"))
 		})
 	})
@@ -411,7 +411,7 @@ var _ = Describe("WriteTape", func() {
 				},
 			}
 
-			err := vhsgen.WriteTape(scenario, vhsgen.GeneratorConfig{OutputDir: tmpDir})
+			err := vhsgen.WriteTape(scenario, vhsgen.GeneratorConfig{OutputDir: tmpDir, ConfigSourcePath: "config/config.tape"})
 			Expect(err).NotTo(HaveOccurred())
 
 			expectedPath := filepath.Join(tmpDir, "file-output", "write-test.tape")
@@ -419,7 +419,7 @@ var _ = Describe("WriteTape", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			content := string(data)
-			Expect(content).To(ContainSubstring("Source demos/vhs/config.tape"))
+			Expect(content).To(ContainSubstring("Source /tmp/vhsgen-config.tape"))
 			Expect(content).To(ContainSubstring("Ctrl+C"))
 		})
 	})
