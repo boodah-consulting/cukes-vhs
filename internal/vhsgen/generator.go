@@ -18,23 +18,40 @@ const (
 	manualStepMarker        = "Manual step needed"
 )
 
-// resolveConfigPath returns the config path to use.
-// If customPath is non-empty and the file exists, use it.
-// Otherwise, write embedded config to temp and return that path.
-func resolveConfigPath(customPath string) (string, error) {
+// resolveConfigPath returns the config path to use and a cleanup function.
+// If customPath is non-empty and the file exists, use it (cleanup is a no-op).
+// Otherwise, write embedded config to a unique temp file and return that path.
+// The caller must call the cleanup function to remove any temp file created.
+func resolveConfigPath(customPath string) (string, func(), error) {
 	if customPath != "" {
 		if _, err := os.Stat(customPath); err == nil {
-			return customPath, nil
+			return customPath, func() {}, nil
 		}
+		fmt.Fprintf(os.Stderr, "Warning: config file not found at %s, using embedded default. Run 'cukes-vhs init' to create one.\n", customPath)
 	}
 
-	// Fallback to embedded config
-	tmpDir := os.TempDir()
-	tmpPath := filepath.Join(tmpDir, "vhsgen-config.tape")
-	if err := os.WriteFile(tmpPath, []byte(defaultConfigContent), 0644); err != nil {
-		return "", fmt.Errorf("failed to write embedded config: %w", err)
+	// Fallback to embedded config in a unique temp file
+	f, err := os.CreateTemp("", "vhsgen-*.tape")
+	if err != nil {
+		return "", func() {}, fmt.Errorf("creating temp config file: %w", err)
 	}
-	return tmpPath, nil
+
+	tmpPath := f.Name()
+
+	if _, err := f.Write([]byte(defaultConfigContent)); err != nil {
+		f.Close()
+		os.Remove(tmpPath)
+
+		return "", func() {}, fmt.Errorf("writing embedded config: %w", err)
+	}
+
+	if err := f.Close(); err != nil {
+		os.Remove(tmpPath)
+
+		return "", func() {}, fmt.Errorf("closing temp config file: %w", err)
+	}
+
+	return tmpPath, func() { os.Remove(tmpPath) }, nil
 }
 
 // forbiddenPatterns returns patterns that must not appear in generated tape content.
@@ -47,18 +64,19 @@ func forbiddenPatterns() []string {
 //
 // Expected: scenario with populated setup/demo steps, config with OutputDir set.
 // Returns: rendered tape content as string, or error if rendering or validation fails.
-// Side effects: None.
+// Side effects: May create a temporary config file (cleaned up before returning).
 func GenerateTape(scenario ScenarioIR, config GeneratorConfig) (string, error) {
 	configSourcePath := config.ConfigSourcePath
 	if configSourcePath == "" {
 		configSourcePath = defaultConfigSourcePath
 	}
 
-	// Resolve config with fallback
-	resolvedConfigPath, err := resolveConfigPath(configSourcePath)
+	// Resolve config with fallback; clean up any temp file when done
+	resolvedConfigPath, cleanup, err := resolveConfigPath(configSourcePath)
 	if err != nil {
 		return "", err
 	}
+	defer cleanup()
 
 	sleepDuration := config.SleepDuration
 	if sleepDuration == "" {

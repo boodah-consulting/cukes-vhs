@@ -56,7 +56,7 @@ var _ = Describe("GenerateTape", func() {
 		})
 
 		It("contains the Source directive", func() {
-			Expect(result).To(ContainSubstring("Source /tmp/vhsgen-config.tape"))
+			Expect(result).To(MatchRegexp(`Source .*/vhsgen-.*\.tape`))
 		})
 
 		It("contains the GIF output directive", func() {
@@ -224,7 +224,7 @@ var _ = Describe("GenerateTape", func() {
 			result, err := vhsgen.GenerateTape(scenario, vhsgen.GeneratorConfig{OutputDir: "out"})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(result).To(ContainSubstring("Source /tmp/vhsgen-config.tape"))
+			Expect(result).To(MatchRegexp(`Source .*/vhsgen-.*\.tape`))
 			Expect(result).To(ContainSubstring("Sleep 2s"))
 		})
 	})
@@ -419,7 +419,7 @@ var _ = Describe("WriteTape", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			content := string(data)
-			Expect(content).To(ContainSubstring("Source /tmp/vhsgen-config.tape"))
+			Expect(content).To(MatchRegexp(`Source .*/vhsgen-.*\.tape`))
 			Expect(content).To(ContainSubstring("Ctrl+C"))
 		})
 	})
@@ -505,5 +505,88 @@ var _ = Describe("WriteTape", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("writing tape file"))
 		})
+	})
+})
+
+var _ = Describe("resolveConfigPath", func() {
+	Context("when custom path points to an existing file", func() {
+		It("returns the custom path", func() {
+			tmpDir := GinkgoT().TempDir()
+			customPath := filepath.Join(tmpDir, "custom-config.tape")
+			Expect(os.WriteFile(customPath, []byte("custom content"), 0o644)).To(Succeed())
+
+			result, cleanup, err := vhsgen.ResolveConfigPath(customPath)
+			Expect(err).NotTo(HaveOccurred())
+			defer cleanup()
+			Expect(result).To(Equal(customPath))
+		})
+	})
+	Context("when custom path does not exist", func() {
+		It("falls back to writing embedded config to a temp file", func() {
+			result, cleanup, err := vhsgen.ResolveConfigPath("/nonexistent/path/config.tape")
+			defer cleanup()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).NotTo(Equal("/nonexistent/path/config.tape"))
+		})
+		It("returns a valid file path that exists on disc", func() {
+			result, cleanup, err := vhsgen.ResolveConfigPath("/nonexistent/path/config.tape")
+			defer cleanup()
+			Expect(err).NotTo(HaveOccurred())
+
+			_, statErr := os.Stat(result)
+			Expect(statErr).NotTo(HaveOccurred())
+		})
+		It("writes the embedded config content to the fallback path", func() {
+			result, cleanup, err := vhsgen.ResolveConfigPath("/nonexistent/path/config.tape")
+			defer cleanup()
+			Expect(err).NotTo(HaveOccurred())
+			data, readErr := os.ReadFile(result)
+			Expect(readErr).NotTo(HaveOccurred())
+			Expect(string(data)).To(ContainSubstring("Set Shell"))
+		})
+	})
+	Context("when custom path is empty", func() {
+		It("falls back to embedded config", func() {
+			result, cleanup, err := vhsgen.ResolveConfigPath("")
+			defer cleanup()
+			Expect(err).NotTo(HaveOccurred())
+
+			_, statErr := os.Stat(result)
+			Expect(statErr).NotTo(HaveOccurred())
+		})
+
+		It("returns a path containing the expected filename", func() {
+			result, cleanup, err := vhsgen.ResolveConfigPath("")
+			defer cleanup()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(ContainSubstring("vhsgen-"))
+			Expect(result).To(HaveSuffix(".tape"))
+		})
+	})
+})
+
+var _ = Describe("DefaultConfig", func() {
+	It("returns a non-empty string", func() {
+		Expect(vhsgen.DefaultConfig()).NotTo(BeEmpty())
+	})
+
+	It("contains the Set Shell directive", func() {
+		Expect(vhsgen.DefaultConfig()).To(ContainSubstring("Set Shell"))
+	})
+
+	It("contains the Set FontSize directive", func() {
+		Expect(vhsgen.DefaultConfig()).To(ContainSubstring("Set FontSize"))
+	})
+
+	It("contains the Set Theme directive", func() {
+		Expect(vhsgen.DefaultConfig()).To(ContainSubstring("Set Theme"))
+	})
+
+	It("contains the Set Width directive", func() {
+		Expect(vhsgen.DefaultConfig()).To(ContainSubstring("Set Width"))
+	})
+
+	It("contains the Set Height directive", func() {
+		Expect(vhsgen.DefaultConfig()).To(ContainSubstring("Set Height"))
 	})
 })
