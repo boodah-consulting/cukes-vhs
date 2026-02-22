@@ -3,8 +3,10 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -1287,5 +1289,130 @@ var _ = Describe("vhsgen CLI", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("forbidden pattern"))
 		})
+	})
+})
+
+// failWriter is an io.Writer that always returns an error.
+type failWriter struct{}
+
+func (failWriter) Write([]byte) (int, error) { return 0, fmt.Errorf("write error") }
+
+var _ = Describe("runInitCmd", func() {
+	Context("with valid args and writable directory", func() {
+		It("returns 0", func() {
+			tmpDir := GinkgoT().TempDir()
+			outDir := filepath.Join(tmpDir, "config")
+
+			var out, errOut bytes.Buffer
+			code := runInitCmd([]string{"--output", outDir}, &out, &errOut)
+
+			Expect(code).To(Equal(0))
+			Expect(errOut.String()).To(BeEmpty())
+		})
+	})
+
+	Context("with invalid flag", func() {
+		It("returns 1", func() {
+			var out, errOut bytes.Buffer
+			code := runInitCmd([]string{"--nonexistent-flag"}, &out, &errOut)
+
+			Expect(code).To(Equal(1))
+		})
+	})
+
+	Context("with unwritable directory", func() {
+		It("returns 1 with error in errOut", func() {
+			if runtime.GOOS == "windows" {
+				Skip("chmod not supported on Windows")
+			}
+			if os.Getuid() == 0 {
+				Skip("running as root bypasses permission checks")
+			}
+
+			tmpDir := GinkgoT().TempDir()
+			readOnlyDir := filepath.Join(tmpDir, "readonly")
+			Expect(os.MkdirAll(readOnlyDir, 0o555)).To(Succeed())
+
+			var out, errOut bytes.Buffer
+			code := runInitCmd([]string{"--output", filepath.Join(readOnlyDir, "subdir")}, &out, &errOut)
+
+			Expect(code).To(Equal(1))
+			Expect(errOut.String()).To(ContainSubstring("Error"))
+		})
+	})
+})
+
+var _ = Describe("collectOutputASCIIFiles walkErr branch", func() {
+	It("returns error when directory walk encounters permission error", func() {
+		if runtime.GOOS == "windows" {
+			Skip("chmod not supported on Windows")
+		}
+		if os.Getuid() == 0 {
+			Skip("running as root bypasses permission checks")
+		}
+
+		tmpDir := GinkgoT().TempDir()
+		subDir := filepath.Join(tmpDir, "blocked")
+		Expect(os.MkdirAll(subDir, 0o755)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(subDir, "test.ascii"), []byte("content"), 0o644)).To(Succeed())
+		Expect(os.Chmod(subDir, 0o000)).To(Succeed())
+		DeferCleanup(func() { os.Chmod(subDir, 0o755) })
+
+		files, err := collectOutputASCIIFiles(tmpDir)
+
+		Expect(err).To(HaveOccurred())
+		Expect(files).To(BeNil())
+	})
+})
+
+var _ = Describe("runListJSON encode error", func() {
+	It("returns 1 and writes error to errOut when writer fails", func() {
+		results := []vhsgen.AnalysisResult{
+			{ScenarioName: "test", Feature: "test", Source: vhsgen.SourceBusiness, Translatable: true},
+		}
+
+		var errOut bytes.Buffer
+		code := runListJSON(results, failWriter{}, &errOut)
+
+		Expect(code).To(Equal(1))
+		Expect(errOut.String()).To(ContainSubstring("Error encoding JSON"))
+	})
+})
+
+var _ = Describe("updateAllBaselines error path", func() {
+	It("returns 1 when UpdateBaseline fails due to unwritable goldenDir", func() {
+		if runtime.GOOS == "windows" {
+			Skip("chmod not supported on Windows")
+		}
+		if os.Getuid() == 0 {
+			Skip("running as root bypasses permission checks")
+		}
+
+		tmpDir := GinkgoT().TempDir()
+
+		outputDir := filepath.Join(tmpDir, "output")
+		Expect(os.MkdirAll(outputDir, 0o755)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(outputDir, "test-scenario.ascii"), []byte("content"), 0o644)).To(Succeed())
+
+		goldenDir := filepath.Join(tmpDir, "golden")
+		Expect(os.MkdirAll(goldenDir, 0o755)).To(Succeed())
+		Expect(os.Chmod(goldenDir, 0o555)).To(Succeed())
+		DeferCleanup(func() { os.Chmod(goldenDir, 0o755) })
+
+		var out, errOut bytes.Buffer
+		code := updateAllBaselines(goldenDir, outputDir, &out, &errOut)
+
+		Expect(code).To(Equal(1))
+		Expect(errOut.String()).To(ContainSubstring("Error updating baseline"))
+	})
+})
+
+var _ = Describe("renderAndValidate error path", func() {
+	It("returns 1 and writes error to errOut when RenderAll fails", func() {
+		var out, errOut bytes.Buffer
+		code := renderAndValidate(&out, &errOut, "/nonexistent/tape/dir", "/nonexistent/golden", 120)
+
+		Expect(code).To(Equal(1))
+		Expect(errOut.String()).To(ContainSubstring("Error rendering"))
 	})
 })
