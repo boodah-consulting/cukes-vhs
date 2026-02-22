@@ -3,7 +3,7 @@ package docblocks_test
 import (
 	"testing"
 
-	"github.com/baphled/cukes-vhs/tools/analyzers/docblocks"
+	"github.com/boodah-consulting/cukes-vhs/tools/analyzers/docblocks"
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 

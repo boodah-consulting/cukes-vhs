@@ -153,7 +153,7 @@ else
 fi
 
 # Verify no direct imports from cmd in internal
-CMD_IN_INTERNAL=$(grep -r '"github.com/baphled/cukes-vhs/cmd' internal/ 2>/dev/null || true)
+CMD_IN_INTERNAL=$(grep -r '"github.com/boodah-consulting/cukes-vhs/cmd' internal/ 2>/dev/null || true)
 if [ -z "$CMD_IN_INTERNAL" ]; then
   pass "No cmd/ imports in internal/ (correct dependency direction)"
 else
