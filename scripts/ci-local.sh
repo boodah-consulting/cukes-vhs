@@ -40,7 +40,7 @@ skip_msg() { echo -e "  ${YELLOW}⊘${NC} $* (skipped)"; }
 
 echo -e "${BOLD}cukes-vhs Local CI Pipeline${NC}"
 echo "=============================="
-echo "Module: github.com/baphled/cukes-vhs"
+echo "Module: github.com/boodah-consulting/cukes-vhs"
 echo ""
 
 START_TIME=$(date +%s)
@@ -160,7 +160,7 @@ fi
 
 step "Multi-platform Build"
 
-MODULE="github.com/baphled/cukes-vhs"
+MODULE="github.com/boodah-consulting/cukes-vhs"
 BINARY="cukes-vhs"
 BUILD_DIR=$(mktemp -d /tmp/cukes-vhs-build-XXXXXX)
 trap "rm -rf $BUILD_DIR" EXIT
