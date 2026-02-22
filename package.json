@@ -1,0 +1,22 @@
+{
+  "name": "cukes-vhs",
+  "version": "0.0.0-semantically-released",
+  "private": true,
+  "description": "Gherkin-to-VHS tape generator for terminal recordings",
+  "scripts": {
+    "commitlint": "commitlint --from HEAD~1 --to HEAD",
+    "semantic-release": "semantic-release"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^18.4.3",
+    "@commitlint/config-conventional": "^18.4.3",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^11.1.0",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^9.2.4",
+    "@semantic-release/release-notes-generator": "^12.1.0",
+    "conventional-changelog-conventionalcommits": "^7.0.2",
+    "semantic-release": "^22.0.10"
+  }
+}
