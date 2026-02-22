@@ -137,7 +137,7 @@ func ListBaselines(goldenDir string) ([]BaselineInfo, error) {
 }
 
 func baselineDir(goldenDir, scenario string) string {
-	return filepath.Join(goldenDir, slugify(scenario))
+	return filepath.Join(goldenDir, Slugify(scenario))
 }
 
 func copyFile(src, dst string) error {

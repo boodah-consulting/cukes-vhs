@@ -5,9 +5,10 @@ import (
 	"regexp"
 )
 
-// MenuOrder maps intent names to their position in the main menu.
+// menuOrder maps intent names to their position in the main menu.
 // Source of truth: internal/testutil/e2e/helpers.go:610-617.
-var MenuOrder = map[string]int{
+// Unexported to prevent external mutation; use MenuOrder() for a safe copy.
+var menuOrder = map[string]int{
 	"capture_event":    0,
 	"browse_timeline":  1,
 	"manage_skills":    2,
@@ -17,8 +18,18 @@ var MenuOrder = map[string]int{
 	"fact_management":  6,
 }
 
-// ValidIntents lists all valid intent names in menu order.
-var ValidIntents = []string{
+// MenuOrder returns a copy of the intent-to-menu-position mapping.
+func MenuOrder() map[string]int {
+	result := make(map[string]int, len(menuOrder))
+	for k, v := range menuOrder {
+		result[k] = v
+	}
+	return result
+}
+
+// validIntents lists all valid intent names in menu order.
+// Unexported to prevent external mutation; use ValidIntents() for a safe copy.
+var validIntents = []string{
 	"capture_event",
 	"browse_timeline",
 	"manage_skills",
@@ -26,6 +37,13 @@ var ValidIntents = []string{
 	"configure_system",
 	"burst_management",
 	"fact_management",
+}
+
+// ValidIntents returns a copy of the valid intent names in menu order.
+func ValidIntents() []string {
+	result := make([]string, len(validIntents))
+	copy(result, validIntents)
+	return result
 }
 
 const (
@@ -46,6 +64,8 @@ type stepMatcher struct {
 	translate    func(matches []string) []VHSCommand
 }
 
+// matchers holds the compiled step matchers. Initialised once in init() and
+// never modified thereafter; safe for concurrent reads.
 var matchers []stepMatcher
 
 func init() {
@@ -123,11 +143,11 @@ func buildMatchers() []stepMatcher {
 			stepType:     "When",
 			example:      `I select "manage_skills" from the menu`,
 			params: map[string]ParamConstraint{
-				"intent": {Type: "enum", Values: ValidIntents},
+				"intent": {Type: "enum", Values: validIntents},
 			},
 			translate: func(matches []string) []VHSCommand {
 				intent := matches[1]
-				index, ok := MenuOrder[intent]
+				index, ok := menuOrder[intent]
 				if !ok {
 					return nil
 				}

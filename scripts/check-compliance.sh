@@ -83,7 +83,7 @@ fi
 section 2 "Test Coverage"
 
 if command -v ginkgo &>/dev/null; then
-  COVERAGE_FILE=$(mktemp /tmp/coverage-XXXXXX.out)
+  COVERAGE_FILE=$(mktemp coverage-XXXXXX.out)
   trap "rm -f $COVERAGE_FILE" EXIT
 
   if ginkgo --race --skip-package=testdata --coverprofile="$COVERAGE_FILE" --covermode=atomic ./... 2>/dev/null; then
