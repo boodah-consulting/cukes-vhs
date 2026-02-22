@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/baphled/cukes-vhs"
+	"github.com/baphled/cukes-vhs/internal/vhsgen"
 )
 
 func main() {
