@@ -959,6 +959,7 @@ var _ = Describe("vhsgen CLI", func() {
 
 		Context("--all flag when UpdateBaseline fails due to read-only golden dir", func() {
 			It("returns exit code 1 with error message", func() {
+				skipIfWindows()
 				goldenDir := GinkgoT().TempDir()
 				outputDir := GinkgoT().TempDir()
 
@@ -985,6 +986,7 @@ var _ = Describe("vhsgen CLI", func() {
 
 		Context("positional scenario when UpdateBaseline fails due to read-only golden dir", func() {
 			It("returns exit code 1 with error message", func() {
+				skipIfWindows()
 				goldenDir := GinkgoT().TempDir()
 				outputDir := GinkgoT().TempDir()
 
