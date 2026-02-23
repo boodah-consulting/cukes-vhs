@@ -23,6 +23,12 @@ func skipIfNoVHS() {
 	}
 }
 
+func skipIfWindows() {
+	if runtime.GOOS == "windows" {
+		Skip("file permission tests not supported on Windows")
+	}
+}
+
 var _ = Describe("vhsgen CLI", func() {
 	Context("no subcommand", func() {
 		It("prints usage and returns 0", func() {
@@ -583,6 +589,7 @@ var _ = Describe("vhsgen CLI", func() {
 
 		Context("MkdirAll failure", func() {
 			It("returns error when output dir cannot be created", func() {
+				skipIfWindows()
 				scenario := vhsgen.ScenarioIR{
 					Name:         "MkdirAll Fail",
 					Feature:      "Dir Fail",
@@ -606,6 +613,7 @@ var _ = Describe("vhsgen CLI", func() {
 
 		Context("WriteFile failure", func() {
 			It("returns error when tape file cannot be written to read-only dir", func() {
+				skipIfWindows()
 				readOnlyDir := filepath.Join(tmpDir, "dir-fail")
 				err := os.MkdirAll(readOnlyDir, 0o755)
 				Expect(err).NotTo(HaveOccurred())
