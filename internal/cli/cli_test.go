@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -15,6 +16,12 @@ import (
 
 	"github.com/boodah-consulting/cukes-vhs/internal/vhsgen"
 )
+
+func skipIfNoVHS() {
+	if _, err := exec.LookPath("vhs"); err != nil {
+		Skip("vhs binary not available")
+	}
+}
 
 var _ = Describe("vhsgen CLI", func() {
 	Context("no subcommand", func() {
@@ -232,6 +239,7 @@ var _ = Describe("vhsgen CLI", func() {
 
 		Context("--all flag", func() {
 			It("generates tape files and shows summary", func() {
+				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				code := Run([]string{
 					"generate",
@@ -250,6 +258,7 @@ var _ = Describe("vhsgen CLI", func() {
 			})
 
 			It("runs without error even when all scenarios are untranslatable", func() {
+				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				code := Run([]string{
 					"generate",
@@ -264,6 +273,7 @@ var _ = Describe("vhsgen CLI", func() {
 			})
 
 			It("reports 'Written: <path>' for each tape file written", func() {
+				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				Run([]string{
 					"generate",
@@ -286,6 +296,7 @@ var _ = Describe("vhsgen CLI", func() {
 
 		Context("bare 'all' positional argument", func() {
 			It("treats 'all' as --all and generates tapes", func() {
+				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				code := Run([]string{
 					"generate",
@@ -302,6 +313,7 @@ var _ = Describe("vhsgen CLI", func() {
 
 		Context("--feature flag", func() {
 			It("filters by feature name (case-insensitive) and shows summary", func() {
+				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				code := Run([]string{
 					"generate",
@@ -318,6 +330,7 @@ var _ = Describe("vhsgen CLI", func() {
 
 		Context("--scenario flag", func() {
 			It("filters by scenario name", func() {
+				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				code := Run([]string{
 					"generate",
@@ -334,6 +347,7 @@ var _ = Describe("vhsgen CLI", func() {
 
 		Context("output summary format", func() {
 			It("shows summary with from features, from scenarios, and warnings counts", func() {
+				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				Run([]string{
 					"generate",
