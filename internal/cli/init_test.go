@@ -137,7 +137,7 @@ var _ = Describe("init subcommand", func() {
 
 		Context("when directory creation fails", func() {
 			It("returns an error when the parent is read-only", func() {
-			skipIfWindows()
+				skipIfWindows()
 				readOnlyDir := filepath.Join(tmpDir, "readonly")
 				Expect(os.MkdirAll(readOnlyDir, 0o755)).To(Succeed())
 				Expect(os.Chmod(readOnlyDir, 0o000)).To(Succeed())
