@@ -1,0 +1,240 @@
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs generate --help
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs generate --help
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs generate --help
+Usage of generate:
+  -all
+        Generate for all translatable scenarios
+  -config-source string
+        Path to config tape file (default "demos/config.tape")
+  -feature string
+        Filter by feature name
+  -features string
+        Directory containing .feature files (default "features/")
+  -output string
+        Output directory (required)
+  -scenario string
+        Filter by scenario name
+  -scenarios-dir string
+        Directory containing VHS-only .feature files (default "demos/scenarios/")
+  -timeout int
+        Per-tape render timeout in seconds (default 120)
+  -verbose
+        Verbose output
+Error parsing flags: flag: help requested
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs generate --help
+Usage of generate:
+  -all
+        Generate for all translatable scenarios
+  -config-source string
+        Path to config tape file (default "demos/config.tape")
+  -feature string
+        Filter by feature name
+  -features string
+        Directory containing .feature files (default "features/")
+  -output string
+        Output directory (required)
+  -scenario string
+        Filter by scenario name
+  -scenarios-dir string
+        Directory containing VHS-only .feature files (default "demos/scenarios/")
+  -timeout int
+        Per-tape render timeout in seconds (default 120)
+  -verbose
+        Verbose output
+Error parsing flags: flag: help requested
+> ^C
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/boodah-consulting/cukes-vhs/internal/vhsgen"
+	"github.com/boodah-consulting/cukesvhs/internal/vhsgen"
 )
 
 // writeASCIIFile writes content to a .ascii file at path and returns the path.

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/boodah-consulting/cukes-vhs/internal/vhsgen"
+	"github.com/boodah-consulting/cukesvhs/internal/vhsgen"
 )
 
 type scenarioWithResult struct {

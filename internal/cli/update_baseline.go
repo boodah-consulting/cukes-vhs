@@ -7,7 +7,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/boodah-consulting/cukes-vhs/internal/vhsgen"
+	"github.com/boodah-consulting/cukesvhs/internal/vhsgen"
 )
 
 // updateBaselineOptions holds parsed flags for the update-baseline subcommand.
