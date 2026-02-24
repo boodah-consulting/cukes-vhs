@@ -83,7 +83,7 @@ fi
 section 2 "Test Coverage"
 
 if command -v ginkgo &>/dev/null; then
-  COVERAGE_FILE=$(mktemp /tmp/coverage-XXXXXX.out)
+  COVERAGE_FILE=$(mktemp coverage-XXXXXX.out)
   trap "rm -f $COVERAGE_FILE" EXIT
 
   if ginkgo --race --skip-package=testdata --coverprofile="$COVERAGE_FILE" --covermode=atomic ./... 2>/dev/null; then
@@ -153,7 +153,7 @@ else
 fi
 
 # Verify no direct imports from cmd in internal
-CMD_IN_INTERNAL=$(grep -r '"github.com/boodah-consulting/cukes-vhs/cmd' internal/ 2>/dev/null || true)
+CMD_IN_INTERNAL=$(grep -r '"github.com/boodah-consulting/cukesvhs/cmd' internal/ 2>/dev/null || true)
 if [ -z "$CMD_IN_INTERNAL" ]; then
   pass "No cmd/ imports in internal/ (correct dependency direction)"
 else
