@@ -32,6 +32,20 @@ type ValidationResult struct {
 // ansiEscape matches ANSI terminal escape sequences.
 var ansiEscape = regexp.MustCompile(`\x1b\[[0-9;]*[mGHFJK]`)
 
+// minimalGIF is a valid 1×1 transparent GIF (43 bytes) used as a placeholder.
+var minimalGIF = []byte{
+	0x47, 0x49, 0x46, 0x38, 0x39, 0x61, // GIF89a
+	0x01, 0x00, 0x01, 0x00, // 1x1 canvas
+	0x80, 0x00, 0x00, // GCT flag, 2 colors
+	0x00, 0x00, 0x00, // Color 0: black
+	0xff, 0xff, 0xff, // Color 1: white
+	0x21, 0xf9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, // GCE
+	0x2c, 0x00, 0x00, 0x00, 0x00, // Image descriptor
+	0x01, 0x00, 0x01, 0x00, 0x00, // 1x1, no LCT
+	0x02, 0x02, 0x44, 0x01, 0x00, // LZW min code + data
+	0x3b, // Trailer
+}
+
 // stripANSI removes ANSI escape codes from s.
 func stripANSI(s string) string {
 	return ansiEscape.ReplaceAllString(s, "")
@@ -187,7 +201,7 @@ func ensurePlaceholderGIF(goldenDir, scenario string) (string, error) {
 	}
 
 	gifPath := filepath.Join(placeholderDir, Slugify(scenario)+".gif")
-	if err := os.WriteFile(gifPath, []byte{}, 0o600); err != nil {
+	if err := os.WriteFile(gifPath, minimalGIF, 0o600); err != nil {
 		return "", fmt.Errorf("writing placeholder GIF: %w", err)
 	}
 
