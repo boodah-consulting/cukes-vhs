@@ -18,22 +18,24 @@ const (
 	manualStepMarker        = "Manual step needed"
 )
 
-// resolveConfigPath returns the config path to use and a cleanup function.
-// If customPath is non-empty and the file exists, use it (cleanup is a no-op).
+// resolveConfigPath returns the config path to use, a warning message (if any), and a cleanup function.
+// If customPath is non-empty and the file exists, use it (cleanup is a no-op, warning is empty).
 // Otherwise, write embedded config to a unique temp file and return that path.
+// If customPath was provided but not found, a warning message is returned.
 // The caller must call the cleanup function to remove any temp file created.
-func resolveConfigPath(customPath string) (string, func(), error) {
+func resolveConfigPath(customPath string) (string, string, func(), error) {
+	var warning string
 	if customPath != "" {
 		if _, err := os.Stat(customPath); err == nil {
-			return customPath, func() {}, nil
+			return customPath, "", func() {}, nil
 		}
-		fmt.Fprintf(os.Stderr, "Warning: config file not found at %s, using embedded default. Run 'cukes-vhs init' to create one.\n", customPath)
+		warning = fmt.Sprintf("Warning: config file not found at %s, using embedded default. Run 'cukes-vhs init' to create one.\n", customPath)
 	}
 
 	// Fallback to embedded config in a unique temp file
 	f, err := os.CreateTemp("", "vhsgen-*.tape")
 	if err != nil {
-		return "", func() {}, fmt.Errorf("creating temp config file: %w", err)
+		return "", "", func() {}, fmt.Errorf("creating temp config file: %w", err)
 	}
 
 	tmpPath := f.Name()
@@ -42,16 +44,16 @@ func resolveConfigPath(customPath string) (string, func(), error) {
 		f.Close()
 		os.Remove(tmpPath)
 
-		return "", func() {}, fmt.Errorf("writing embedded config: %w", err)
+		return "", "", func() {}, fmt.Errorf("writing embedded config: %w", err)
 	}
 
 	if err := f.Close(); err != nil {
 		os.Remove(tmpPath)
 
-		return "", func() {}, fmt.Errorf("closing temp config file: %w", err)
+		return "", "", func() {}, fmt.Errorf("closing temp config file: %w", err)
 	}
 
-	return tmpPath, func() { os.Remove(tmpPath) }, nil
+	return tmpPath, warning, func() { os.Remove(tmpPath) }, nil
 }
 
 // forbiddenPatterns returns patterns that must not appear in generated tape content.
@@ -72,7 +74,7 @@ func GenerateTape(scenario ScenarioIR, config GeneratorConfig) (string, error) {
 	}
 
 	// Resolve config with fallback; clean up any temp file when done
-	resolvedConfigPath, cleanup, err := resolveConfigPath(configSourcePath)
+	resolvedConfigPath, _, cleanup, err := resolveConfigPath(configSourcePath)
 	if err != nil {
 		return "", err
 	}
