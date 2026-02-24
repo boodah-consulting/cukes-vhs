@@ -132,12 +132,17 @@ func collectTapeFiles(dir string) ([]string, error) {
 
 // parseOutputPaths reads a tape file and extracts the first GIF and ASCII output paths; relative paths are resolved to absolute form.
 func parseOutputPaths(tapePath string) (gifPath, asciiPath string, err error) {
+	tapePath = filepath.Clean(tapePath)
+
 	data, err := os.ReadFile(tapePath)
 	if err != nil {
 		return "", "", err
 	}
 
-	tapeDir := filepath.Dir(tapePath)
+	tapeDirAbs, err := filepath.Abs(filepath.Dir(tapePath))
+	if err != nil {
+		return "", "", fmt.Errorf("resolving tape directory: %w", err)
+	}
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 
 	for scanner.Scan() {
@@ -149,12 +154,12 @@ func parseOutputPaths(tapePath string) (gifPath, asciiPath string, err error) {
 		outPath := strings.TrimSpace(strings.TrimPrefix(line, "Output "))
 		rawOutPath := outPath
 		if !filepath.IsAbs(outPath) {
-			outPath = filepath.Join(tapeDir, outPath)
+			outPath = filepath.Join(tapeDirAbs, outPath)
 		}
 
 		resolved := filepath.Clean(outPath)
-		cleanTapeDir := filepath.Clean(tapeDir) + string(os.PathSeparator)
-		if !strings.HasPrefix(resolved, cleanTapeDir) && resolved != filepath.Clean(tapeDir) {
+		cleanTapeDir := filepath.Clean(tapeDirAbs) + string(os.PathSeparator)
+		if !strings.HasPrefix(resolved, cleanTapeDir) && resolved != filepath.Clean(tapeDirAbs) {
 			return "", "", fmt.Errorf("output path %q escapes tape directory", rawOutPath)
 		}
 
