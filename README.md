@@ -12,7 +12,7 @@ cukes-vhs is a Go CLI tool that converts Gherkin BDD scenarios into VHS tape fil
 ## Installation
 
 ```bash
-go install github.com/boodah-consulting/cukesvhs/cmd/cukes-vhs@latest
+go install github.com/boodah-consulting/cukes-vhs/cmd/cukes-vhs@latest
 ```
 
 Or build from source:
