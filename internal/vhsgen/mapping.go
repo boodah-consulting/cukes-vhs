@@ -6,7 +6,7 @@ import (
 )
 
 // menuOrder maps intent names to their position in the main menu.
-// Source of truth: internal/testutil/e2e/helpers.go:610-617.
+// This map is the source of truth for menu ordering; keep it in sync with ValidIntents.
 // Unexported to prevent external mutation; use MenuOrder() for a safe copy.
 var menuOrder = map[string]int{
 	"capture_event":    0,
