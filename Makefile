@@ -14,14 +14,14 @@ GOLANGCI_LINT_VERSION := v2.8.0
 build: ## Build the cukes-vhs binary
 	go build -ldflags "-X main.version=$(VERSION)" -o cukes-vhs ./cmd/cukes-vhs
 
-test: ## Run tests with coverage
-	go test -race -coverprofile=coverage.out -covermode=atomic ./...
+test: ## Run tests with Ginkgo
+	ginkgo -v --skip-package=testdata ./...
 
 test-race: ## Run tests with race detector
-	go test -race ./...
+	ginkgo -v --race --skip-package=testdata ./...
 
 coverage: ## Generate test coverage report
-	go tool cover -func=coverage.out
+	bash scripts/test-coverage.sh
 
 fmt: ## Format Go source files
 	gofmt -w .
@@ -41,7 +41,7 @@ golangci-lint: ## Run golangci-lint
 check-docblocks: ## Check docblock compliance in vhsgen
 	go build -o /tmp/docblocks ./cmd/docblocks && go vet -vettool=/tmp/docblocks ./internal/vhsgen/...
 
-pre-commit: fmt vet staticcheck test ## Run pre-commit checks
+pre-commit: fmt vet staticcheck test-race ## Run pre-commit checks
 
 check-compliance: ## Run compliance checks
 	bash scripts/check-compliance.sh
@@ -62,7 +62,7 @@ install-git-hooks: ## Install git hooks
 	bash scripts/install-git-hooks.sh
 
 clean: ## Remove build artefacts and coverage files
-	rm -f cukes-vhs vhsgen
+	rm -f cukes-vhs
 	rm -f coverage.out coverage.html
 
 help: ## Show this help
