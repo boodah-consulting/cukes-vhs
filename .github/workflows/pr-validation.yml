@@ -84,7 +84,7 @@ jobs:
           echo "found=$found" >> "$GITHUB_OUTPUT"
           if [ "$found" = "true" ]; then
             echo "details<<EOF" >> "$GITHUB_OUTPUT"
-            echo -e "$details" >> "$GITHUB_OUTPUT"
+            echo "$details" | base64 -w 0 >> "$GITHUB_OUTPUT"
             echo "EOF" >> "$GITHUB_OUTPUT"
           fi
       - name: Comment on breaking changes
@@ -92,11 +92,13 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const detailsBase64 = '${{ steps.breaking.outputs.details }}';
+            const details = detailsBase64 ? Buffer.from(detailsBase64, 'base64').toString('utf-8') : '';
             const body = [
               '## :warning: Breaking Changes Detected',
               '',
               'The following commits contain breaking changes:',
-              '${{ steps.breaking.outputs.details }}',
+              details,
               '',
               'Please ensure:',
               '- [ ] Breaking change is documented in commit body',
