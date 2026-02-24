@@ -34,3 +34,9 @@ Thumbs.db
 
 # Sisyphus
 .sisyphus/
+
+# Binary
+vhsgen
+
+# Binary
+cukes-vhs
