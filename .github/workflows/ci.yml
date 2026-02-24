@@ -2,11 +2,11 @@
 name: CI
 
 on:
-  workflow_dispatch:
   push:
     branches: [main, next, 'feature/**', 'fix/**', 'refactor/**']
   pull_request:
     branches: [main, next]
+  workflow_dispatch:
 
 env:
   GO_VERSION: '1.25.4'
