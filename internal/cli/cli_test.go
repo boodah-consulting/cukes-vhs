@@ -36,7 +36,7 @@ var _ = Describe("vhsgen CLI", func() {
 			code := Run([]string{}, &out, &errOut)
 
 			Expect(code).To(Equal(0))
-			Expect(out.String()).To(ContainSubstring("vhsgen"))
+			Expect(out.String()).To(ContainSubstring("cukes-vhs"))
 			Expect(out.String()).To(ContainSubstring("list"))
 			Expect(out.String()).To(ContainSubstring("generate"))
 		})
@@ -48,7 +48,7 @@ var _ = Describe("vhsgen CLI", func() {
 			code := Run([]string{"--help"}, &out, &errOut)
 
 			Expect(code).To(Equal(0))
-			Expect(out.String()).To(ContainSubstring("vhsgen"))
+			Expect(out.String()).To(ContainSubstring("cukes-vhs"))
 		})
 	})
 
@@ -561,7 +561,7 @@ var _ = Describe("vhsgen CLI", func() {
 		})
 
 		Context("VHSOnly source routing", func() {
-			It("writes tape to scenarios/{feature-slug}/ subdirectory", func() {
+			It("writes tape to {feature-slug}/ subdirectory matching business layout", func() {
 				scenario := vhsgen.ScenarioIR{
 					Name:         "VHS Only Test",
 					Feature:      "Vhs Feature",
@@ -579,7 +579,36 @@ var _ = Describe("vhsgen CLI", func() {
 
 				outPath, err := writeScenarioTape(scenario, tmpDir, "demos/vhs/config.tape")
 				Expect(err).NotTo(HaveOccurred())
-				Expect(outPath).To(ContainSubstring(filepath.Join("scenarios", "vhs-feature")))
+				Expect(outPath).To(ContainSubstring(filepath.Join("vhs-feature", "vhs-only-test.tape")))
+				Expect(outPath).NotTo(ContainSubstring("scenarios"))
+				Expect(outPath).To(HaveSuffix(".tape"))
+
+				_, statErr := os.Stat(outPath)
+				Expect(statErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("Business source routing", func() {
+			It("writes tape to {feature-slug}/ subdirectory with same layout as VHS-only", func() {
+				scenario := vhsgen.ScenarioIR{
+					Name:         "Business Test",
+					Feature:      "Business Feature",
+					Source:       vhsgen.SourceBusiness,
+					Translatable: true,
+					DemoSteps: []vhsgen.StepIR{
+						{
+							Text:         "I select the menu item",
+							StepType:     "When",
+							Translatable: true,
+							Commands:     []vhsgen.VHSCommand{{Type: vhsgen.Enter}},
+						},
+					},
+				}
+
+				outPath, err := writeScenarioTape(scenario, tmpDir, "demos/vhs/config.tape")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(outPath).To(ContainSubstring(filepath.Join("business-feature", "business-test.tape")))
+				Expect(outPath).NotTo(ContainSubstring("scenarios"))
 				Expect(outPath).To(HaveSuffix(".tape"))
 
 				_, statErr := os.Stat(outPath)
@@ -652,12 +681,51 @@ var _ = Describe("vhsgen CLI", func() {
 				}
 
 				results := []vhsgen.AnalysisResult{
-					{ScenarioName: "Present Scenario", Feature: "Feature A", Source: vhsgen.SourceBusiness, Translatable: true},
+					{
+						ScenarioID:   vhsgen.BuildScenarioID(vhsgen.SourceBusiness, "Feature A", "Present Scenario"),
+						ScenarioName: "Present Scenario",
+						Feature:      "Feature A",
+						Source:       vhsgen.SourceBusiness,
+						Translatable: true,
+					},
 				}
 
 				filtered := filterResults(results, scenarios, true, "", "")
 				Expect(filtered).To(HaveLen(1))
 				Expect(filtered[0].scenario.Name).To(Equal("Present Scenario"))
+			})
+		})
+
+		Context("same scenario name in different features", func() {
+			It("preserves both scenarios without collision", func() {
+				scenarios := []vhsgen.ScenarioIR{
+					{Name: "User logs in", Feature: "Feature A", Source: vhsgen.SourceBusiness},
+					{Name: "User logs in", Feature: "Feature B", Source: vhsgen.SourceBusiness},
+				}
+
+				results := []vhsgen.AnalysisResult{
+					{
+						ScenarioID:   vhsgen.BuildScenarioID(vhsgen.SourceBusiness, "Feature A", "User logs in"),
+						ScenarioName: "User logs in",
+						Feature:      "Feature A",
+						Source:       vhsgen.SourceBusiness,
+						Translatable: true,
+					},
+					{
+						ScenarioID:   vhsgen.BuildScenarioID(vhsgen.SourceBusiness, "Feature B", "User logs in"),
+						ScenarioName: "User logs in",
+						Feature:      "Feature B",
+						Source:       vhsgen.SourceBusiness,
+						Translatable: false,
+					},
+				}
+
+				filtered := filterResults(results, scenarios, true, "", "")
+				Expect(filtered).To(HaveLen(2))
+				Expect(filtered[0].scenario.Feature).To(Equal("Feature A"))
+				Expect(filtered[0].result.Translatable).To(BeTrue())
+				Expect(filtered[1].scenario.Feature).To(Equal("Feature B"))
+				Expect(filtered[1].result.Translatable).To(BeFalse())
 			})
 		})
 	})
@@ -940,6 +1008,75 @@ var _ = Describe("vhsgen CLI", func() {
 			})
 		})
 
+
+		Context("positional scenario name with nested feature directory", func() {
+			It("finds and updates the baseline from a subdirectory", func() {
+				goldenDir := GinkgoT().TempDir()
+				outputDir := GinkgoT().TempDir()
+
+				featureDir := filepath.Join(outputDir, "user-authentication")
+				Expect(os.MkdirAll(featureDir, 0o755)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(featureDir, "user-logs-in.ascii"), []byte("ascii content"), 0o600)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(featureDir, "user-logs-in.gif"), []byte("gif content"), 0o600)).To(Succeed())
+
+				var out, errOut bytes.Buffer
+				code := Run([]string{
+					"update-baseline",
+					"--output", outputDir,
+					"--golden", goldenDir,
+					"User logs in",
+				}, &out, &errOut)
+
+				Expect(code).To(Equal(0))
+				Expect(out.String()).To(ContainSubstring("Updated 1 baselines."))
+			})
+		})
+
+		Context("positional scenario not found in output directory", func() {
+			It("returns exit code 1 with error message", func() {
+				goldenDir := GinkgoT().TempDir()
+				outputDir := GinkgoT().TempDir()
+
+				var out, errOut bytes.Buffer
+				code := Run([]string{
+					"update-baseline",
+					"--output", outputDir,
+					"--golden", goldenDir,
+					"nonexistent-scenario",
+				}, &out, &errOut)
+
+				Expect(code).To(Equal(1))
+				Expect(errOut.String()).To(ContainSubstring("Error finding baseline"))
+			})
+		})
+
+		Context("positional scenario with ambiguous match across features", func() {
+			It("returns exit code 1 with ambiguous error", func() {
+				goldenDir := GinkgoT().TempDir()
+				outputDir := GinkgoT().TempDir()
+
+				featureA := filepath.Join(outputDir, "feature-a")
+				featureB := filepath.Join(outputDir, "feature-b")
+				Expect(os.MkdirAll(featureA, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(featureB, 0o755)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(featureA, "user-logs-in.ascii"), []byte("a"), 0o600)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(featureA, "user-logs-in.gif"), []byte("ga"), 0o600)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(featureB, "user-logs-in.ascii"), []byte("b"), 0o600)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(featureB, "user-logs-in.gif"), []byte("gb"), 0o600)).To(Succeed())
+
+				var out, errOut bytes.Buffer
+				code := Run([]string{
+					"update-baseline",
+					"--output", outputDir,
+					"--golden", goldenDir,
+					"User logs in",
+				}, &out, &errOut)
+
+				Expect(code).To(Equal(1))
+				Expect(errOut.String()).To(ContainSubstring("ambiguous"))
+			})
+		})
+
 		Context("--all flag with non-existent output directory", func() {
 			It("exits 0 reporting 0 baselines (missing dir is not an error)", func() {
 				goldenDir := GinkgoT().TempDir()
@@ -1149,6 +1286,66 @@ var _ = Describe("vhsgen CLI", func() {
 		It("replaces .ascii extension with .gif", func() {
 			result := deriveGIFPath("/tmp/output/my-scenario.ascii")
 			Expect(result).To(Equal("/tmp/output/my-scenario.gif"))
+		})
+	})
+
+
+	Describe("findASCIIFileForScenario", func() {
+		Context("when ascii file is in a nested feature subdirectory", func() {
+			It("finds the file by scenario slug", func() {
+				outputDir := GinkgoT().TempDir()
+				featureDir := filepath.Join(outputDir, "user-authentication")
+				Expect(os.MkdirAll(featureDir, 0o755)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(featureDir, "user-logs-in.ascii"), []byte("content"), 0o600)).To(Succeed())
+
+				result, err := findASCIIFileForScenario(outputDir, "user-logs-in")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).To(Equal(filepath.Join(featureDir, "user-logs-in.ascii")))
+			})
+		})
+
+		Context("when ascii file is at the root of outputDir", func() {
+			It("finds the file", func() {
+				outputDir := GinkgoT().TempDir()
+				Expect(os.WriteFile(filepath.Join(outputDir, "my-scenario.ascii"), []byte("content"), 0o600)).To(Succeed())
+
+				result, err := findASCIIFileForScenario(outputDir, "my-scenario")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).To(Equal(filepath.Join(outputDir, "my-scenario.ascii")))
+			})
+		})
+
+		Context("when no matching ascii file exists", func() {
+			It("returns an error", func() {
+				outputDir := GinkgoT().TempDir()
+
+				_, err := findASCIIFileForScenario(outputDir, "nonexistent-scenario")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("no .ascii file found"))
+			})
+		})
+
+		Context("when the same scenario slug exists in multiple feature directories", func() {
+			It("returns an ambiguous error", func() {
+				outputDir := GinkgoT().TempDir()
+				featureA := filepath.Join(outputDir, "feature-a")
+				featureB := filepath.Join(outputDir, "feature-b")
+				Expect(os.MkdirAll(featureA, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(featureB, 0o755)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(featureA, "user-logs-in.ascii"), []byte("a"), 0o600)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(featureB, "user-logs-in.ascii"), []byte("b"), 0o600)).To(Succeed())
+
+				_, err := findASCIIFileForScenario(outputDir, "user-logs-in")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("ambiguous"))
+			})
+		})
+
+		Context("when outputDir does not exist", func() {
+			It("returns an error", func() {
+				_, err := findASCIIFileForScenario("/nonexistent/output/dir", "scenario")
+				Expect(err).To(HaveOccurred())
+			})
 		})
 	})
 
