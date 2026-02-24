@@ -80,6 +80,9 @@ type GeneratorConfig struct {
 
 // AnalysisResult represents the result of analysing a scenario.
 type AnalysisResult struct {
+	// ScenarioID is a composite key combining source, feature, and scenario name
+	// to uniquely identify a scenario across features. Format: source/feature/name (slugified).
+	ScenarioID          string
 	ScenarioName        string
 	Feature             string
 	Translatable        bool
@@ -87,6 +90,13 @@ type AnalysisResult struct {
 	Source              SourceType
 	Warnings            []string
 	Errors              []string
+}
+
+// BuildScenarioID constructs a unique composite key for a scenario from its
+// source type, feature name, and scenario name. Each component is slugified
+// for path safety. The format is "source/feature/name".
+func BuildScenarioID(source SourceType, feature, name string) string {
+	return Slugify(string(source)) + "/" + Slugify(feature) + "/" + Slugify(name)
 }
 
 // ParamConstraint defines constraints on a step parameter.

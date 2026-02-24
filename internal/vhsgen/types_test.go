@@ -466,4 +466,33 @@ var _ = Describe("Types", func() {
 			})
 		})
 	})
+
+	Describe("BuildScenarioID", func() {
+		It("combines source, feature, and name with slugified components", func() {
+			id := vhsgen.BuildScenarioID(vhsgen.SourceBusiness, "My Feature", "User logs in")
+			Expect(id).To(Equal("business/my-feature/user-logs-in"))
+		})
+
+		It("handles VHS-only source type", func() {
+			id := vhsgen.BuildScenarioID(vhsgen.SourceVHSOnly, "Demo Feature", "Custom Flow")
+			Expect(id).To(Equal("vhs-only/demo-feature/custom-flow"))
+		})
+
+		It("produces distinct IDs for same scenario name in different features", func() {
+			idA := vhsgen.BuildScenarioID(vhsgen.SourceBusiness, "Feature A", "User logs in")
+			idB := vhsgen.BuildScenarioID(vhsgen.SourceBusiness, "Feature B", "User logs in")
+			Expect(idA).NotTo(Equal(idB))
+		})
+
+		It("produces distinct IDs for same scenario name with different sources", func() {
+			idBusiness := vhsgen.BuildScenarioID(vhsgen.SourceBusiness, "Feature A", "User logs in")
+			idVHS := vhsgen.BuildScenarioID(vhsgen.SourceVHSOnly, "Feature A", "User logs in")
+			Expect(idBusiness).NotTo(Equal(idVHS))
+		})
+
+		It("handles special characters in names", func() {
+			id := vhsgen.BuildScenarioID(vhsgen.SourceBusiness, "Feature (v2)", "User's login & logout")
+			Expect(id).To(Equal("business/feature-v2/users-login-logout"))
+		})
+})
 })

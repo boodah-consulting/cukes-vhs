@@ -125,18 +125,18 @@ var _ = Describe("AnalyseScenarios", func() {
 		})
 
 		It("produces a prescriptive error message", func() {
-			wantErr := "Step 'I do something custom' not found in mapping. Run `vhsgen list --steps` to see available steps."
+			wantErr := "Step 'I do something custom' not found in mapping. Run `cukes-vhs list --steps` to see available steps."
 			Expect(result.Errors[0]).To(Equal(wantErr))
 		})
 	})
 
-	Describe("Given/Then steps do not affect translatability", func() {
+	Describe("untranslatable setup steps affect translatability", func() {
 		var result vhsgen.AnalysisResult
 
 		BeforeEach(func() {
 			scenarios := []vhsgen.ScenarioIR{
 				{
-					Name:    "Setup does not block",
+					Name:    "Setup blocks translation",
 					Feature: "Resilience",
 					Source:  vhsgen.SourceBusiness,
 					SetupSteps: []vhsgen.StepIR{
@@ -154,16 +154,62 @@ var _ = Describe("AnalyseScenarios", func() {
 			result = results[0]
 		})
 
-		It("is translatable because only When steps matter", func() {
-			Expect(result.Translatable).To(BeTrue())
+		It("is not translatable", func() {
+			Expect(result.Translatable).To(BeFalse())
 		})
 
+		It("has 2 warnings for business source", func() {
+			Expect(result.Warnings).To(HaveLen(2))
+		})
+		It("has no errors", func() {
+			Expect(result.Errors).To(BeEmpty())
+		})
+
+		It("records 2 untranslatable steps", func() {
+			Expect(result.UntranslatableSteps).To(HaveLen(2))
+		})
+	})
+
+	Describe("VHS-only scenario with untranslatable setup step", func() {
+		var result vhsgen.AnalysisResult
+
+		BeforeEach(func() {
+			scenarios := []vhsgen.ScenarioIR{
+				{
+					Name:    "VHS setup fails",
+					Feature: "VHS Demo",
+					Source:  vhsgen.SourceVHSOnly,
+					SetupSteps: []vhsgen.StepIR{
+						{Text: "unknown setup action", StepType: "Given", Translatable: false, UntranslatableReason: "no matching pattern"},
+					},
+					DemoSteps: []vhsgen.StepIR{
+						{Text: "I press enter", StepType: "When", Translatable: true},
+					},
+				},
+			}
+
+			results := vhsgen.AnalyseScenarios(scenarios)
+			Expect(results).To(HaveLen(1))
+			result = results[0]
+		})
+
+		It("is not translatable", func() {
+			Expect(result.Translatable).To(BeFalse())
+		})
 		It("has no warnings", func() {
 			Expect(result.Warnings).To(BeEmpty())
 		})
 
-		It("has no errors", func() {
-			Expect(result.Errors).To(BeEmpty())
+		It("has 1 error for VHS-only source", func() {
+			Expect(result.Errors).To(HaveLen(1))
+		})
+
+		It("records 1 untranslatable step", func() {
+			Expect(result.UntranslatableSteps).To(HaveLen(1))
+		})
+
+		It("produces a prescriptive error message", func() {
+			Expect(result.Errors[0]).To(ContainSubstring("unknown setup action"))
 		})
 	})
 
@@ -223,6 +269,51 @@ var _ = Describe("AnalyseScenarios", func() {
 		})
 	})
 
+
+	Describe("ScenarioID generation", func() {
+		It("populates ScenarioID as a composite of source, feature, and name", func() {
+			scenarios := []vhsgen.ScenarioIR{
+				{
+					Name:    "User logs in",
+					Feature: "Authentication",
+					Source:  vhsgen.SourceBusiness,
+					DemoSteps: []vhsgen.StepIR{
+						{Text: "I press enter", StepType: "When", Translatable: true},
+					},
+				},
+			}
+
+			results := vhsgen.AnalyseScenarios(scenarios)
+			Expect(results[0].ScenarioID).To(Equal("business/authentication/user-logs-in"))
+		})
+
+		It("produces unique IDs for same-named scenarios in different features", func() {
+			scenarios := []vhsgen.ScenarioIR{
+				{
+					Name:    "User logs in",
+					Feature: "Feature A",
+					Source:  vhsgen.SourceBusiness,
+					DemoSteps: []vhsgen.StepIR{
+						{Text: "I press enter", StepType: "When", Translatable: true},
+					},
+				},
+				{
+					Name:    "User logs in",
+					Feature: "Feature B",
+					Source:  vhsgen.SourceBusiness,
+					DemoSteps: []vhsgen.StepIR{
+						{Text: "I press enter", StepType: "When", Translatable: true},
+					},
+				},
+			}
+
+			results := vhsgen.AnalyseScenarios(scenarios)
+			Expect(results).To(HaveLen(2))
+			Expect(results[0].ScenarioID).NotTo(Equal(results[1].ScenarioID))
+			Expect(results[0].ScenarioID).To(Equal("business/feature-a/user-logs-in"))
+			Expect(results[1].ScenarioID).To(Equal("business/feature-b/user-logs-in"))
+		})
+	})
 	Describe("multiple untranslatable When steps", func() {
 		var result vhsgen.AnalysisResult
 
