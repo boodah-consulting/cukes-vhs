@@ -29,7 +29,7 @@ type BaselineInfo struct {
 func SaveBaseline(goldenDir, scenario, asciiPath, gifPath string) error {
 	dir := baselineDir(goldenDir, scenario)
 
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("creating baseline dir %q: %w", dir, err)
 	}
 
@@ -141,6 +141,9 @@ func baselineDir(goldenDir, scenario string) string {
 }
 
 func copyFile(src, dst string) error {
+	src = filepath.Clean(src)
+	dst = filepath.Clean(dst)
+
 	in, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("opening source %q: %w", src, err)
