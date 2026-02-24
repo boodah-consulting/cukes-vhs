@@ -70,6 +70,8 @@ func normalise(s string) string {
 // ValidationFail with diff when content differs; ValidationPass otherwise.
 // Side effects: may create a new baseline directory and placeholder GIF when no baseline exists.
 func ValidateScenario(goldenDir, scenario, currentASCIIPath string) (ValidationResult, error) {
+	currentASCIIPath = filepath.Clean(currentASCIIPath)
+
 	result := ValidationResult{
 		Scenario:  scenario,
 		ASCIIPath: currentASCIIPath,
@@ -102,6 +104,7 @@ func ValidateScenario(goldenDir, scenario, currentASCIIPath string) (ValidationR
 	}
 
 	result.GoldenPath = goldenASCII
+	goldenASCII = filepath.Clean(goldenASCII)
 
 	currentData, err := os.ReadFile(currentASCIIPath)
 	if err != nil {
@@ -196,7 +199,7 @@ func deriveScenario(outputDir, asciiPath string) string {
 // ensurePlaceholderGIF creates an empty placeholder GIF to satisfy SaveBaseline's GIF path requirement.
 func ensurePlaceholderGIF(goldenDir, scenario string) (string, error) {
 	placeholderDir := filepath.Join(goldenDir, ".placeholders")
-	if err := os.MkdirAll(placeholderDir, 0o755); err != nil {
+	if err := os.MkdirAll(placeholderDir, 0o750); err != nil {
 		return "", fmt.Errorf("creating placeholder dir: %w", err)
 	}
 
