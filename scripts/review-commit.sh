@@ -262,7 +262,7 @@ fi
 CMD_IMPORTS=$(echo "$STAGED_GO_FILES" | while IFS= read -r f; do
   if echo "$f" | grep -q '^internal/'; then
     if [ -f "$f" ]; then
-      grep '"github.com/boodah-consulting/cukes-vhs/cmd' "$f" 2>/dev/null || true
+      grep '"github.com/boodah-consulting/cukesvhs/cmd' "$f" 2>/dev/null || true
     fi
   fi
 done)
