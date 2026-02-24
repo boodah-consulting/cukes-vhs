@@ -1,0 +1,240 @@
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all
+flag provided but not defined: -all
+Usage of list:
+  -count
+        Show counts broken down by source
+  -features string
+        Directory containing .feature files (default "features/")
+  -json
+        Output as JSON
+  -scenarios-dir string
+        Directory containing VHS-only .feature files (default "demos/scenarios/")
+  -steps
+        Show translatable step patterns
+Error parsing flags: flag provided but not defined: -all
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all
+flag provided but not defined: -all
+Usage of list:
+  -count
+        Show counts broken down by source
+  -features string
+        Directory containing .feature files (default "features/")
+  -json
+        Output as JSON
+  -scenarios-dir string
+        Directory containing VHS-only .feature files (default "demos/scenarios/")
+  -steps
+        Show translatable step patterns
+Error parsing flags: flag provided but not defined: -all
+> ^C
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
