@@ -39,7 +39,7 @@ func parseRunFlags(args []string, errOut io.Writer) (*runOptions, error) {
 		outputDir:      fs.String("output", "", "Output directory for generated tapes (required)"),
 		goldenDir:      fs.String("golden", "demos/golden/", "Golden baseline directory"),
 		timeoutSec:     fs.Int("timeout", 120, "Per-tape render timeout in seconds"),
-		configSource:   fs.String("config-source", "demos/config.tape", "Path to config tape file"),
+		configSource:   fs.String("config-source", "config/config.tape", "Path to config tape file"),
 	}
 
 	if err := fs.Parse(normaliseArgs(args)); err != nil {

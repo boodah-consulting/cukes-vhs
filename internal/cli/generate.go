@@ -76,7 +76,7 @@ func parseGenerateFlags(args []string, errOut io.Writer) (*generateOptions, erro
 		featuresDir:    fs.String("features", "features/", "Directory containing .feature files"),
 		scenariosDir:   fs.String("scenarios-dir", "demos/scenarios/", "Directory containing VHS-only .feature files"),
 		outputDir:      fs.String("output", "", "Output directory (required)"),
-		configSource:   fs.String("config-source", "demos/config.tape", "Path to config tape file"),
+		configSource:   fs.String("config-source", "config/config.tape", "Path to config tape file"),
 		verbose:        fs.Bool("verbose", false, "Verbose output"),
 		timeoutSec:     fs.Int("timeout", 120, "Per-tape render timeout in seconds"),
 	}
