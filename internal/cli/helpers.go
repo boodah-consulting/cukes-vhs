@@ -48,15 +48,15 @@ func filterResults(
 ) []scenarioWithResult {
 	var out []scenarioWithResult
 
-	resultByName := make(map[string]vhsgen.AnalysisResult, len(results))
+	resultByID := make(map[string]vhsgen.AnalysisResult, len(results))
 	for i := range results {
 		r := &results[i]
-		resultByName[r.ScenarioName] = *r
+		resultByID[r.ScenarioID] = *r
 	}
-
 	for i := range scenarios {
 		s := &scenarios[i]
-		result, ok := resultByName[s.Name]
+		key := vhsgen.BuildScenarioID(s.Source, s.Feature, s.Name)
+		result, ok := resultByID[key]
 		if !ok {
 			continue
 		}
@@ -76,20 +76,13 @@ func filterResults(
 	return out
 }
 
-// writeScenarioTape generates and writes a tape file with source-aware routing:
-// Business tapes → {output}/{feature-slug}/{scenario-slug}.tape.
-// VHS-only tapes → {output}/scenarios/{subdirectory}/{scenario-slug}.tape.
+// writeScenarioTape generates and writes a tape file to {output}/{feature-slug}/{scenario-slug}.tape.
+// Both business and VHS-only scenarios use the same nested layout, matching the
+// GIF/ASCII output paths set by GenerateTape in the generator package.
 func writeScenarioTape(scenario vhsgen.ScenarioIR, outputDir, configSourcePath string) (string, error) {
 	featureSlug := vhsgen.Slugify(scenario.Feature)
 	scenarioSlug := vhsgen.Slugify(scenario.Name)
-
-	var tapeDir string
-	switch scenario.Source {
-	case vhsgen.SourceVHSOnly:
-		tapeDir = filepath.Join(outputDir, "scenarios", featureSlug)
-	default:
-		tapeDir = filepath.Join(outputDir, featureSlug)
-	}
+	tapeDir := filepath.Join(outputDir, featureSlug)
 
 	config := vhsgen.GeneratorConfig{
 		OutputDir:        outputDir,
@@ -172,6 +165,44 @@ func deriveScenarioName(outputDir, asciiPath string) string {
 // Side effects: none.
 func deriveGIFPath(asciiPath string) string {
 	return strings.TrimSuffix(asciiPath, ".ascii") + ".gif"
+}
+
+// findASCIIFileForScenario searches outputDir recursively for a .ascii file
+// matching the given scenario slug. The generator creates nested paths
+// ({outputDir}/{featureSlug}/{scenarioSlug}.ascii), so a recursive search is
+// necessary when only the scenario name is known.
+//
+// Expected: outputDir is a readable directory; scenarioSlug is a slugified scenario name.
+// Returns: the path to the matching .ascii file; error if not found or ambiguous.
+// Side effects: none.
+func findASCIIFileForScenario(outputDir, scenarioSlug string) (string, error) {
+	targetName := scenarioSlug + ".ascii"
+
+	var matches []string
+
+	err := filepath.WalkDir(outputDir, func(path string, d os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+
+		if !d.IsDir() && filepath.Base(path) == targetName {
+			matches = append(matches, path)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("scanning output dir %q: %w", outputDir, err)
+	}
+
+	switch len(matches) {
+	case 0:
+		return "", fmt.Errorf("no .ascii file found for scenario %q in %q", scenarioSlug, outputDir)
+	case 1:
+		return matches[0], nil
+	default:
+		return "", fmt.Errorf("ambiguous: scenario %q found in multiple locations: %v", scenarioSlug, matches)
+	}
 }
 
 func truncate(s string, maxLen int) string {

@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"path/filepath"
-
 	"github.com/boodah-consulting/cukesvhs/internal/vhsgen"
 )
 
@@ -105,27 +103,32 @@ func updateAllBaselines(goldenDir, outputDir string, out, errOut io.Writer) int 
 }
 
 // updateNamedBaselines accepts specific named scenarios as golden baselines.
+// It searches outputDir recursively for matching .ascii files, supporting the
+// nested directory layout ({outputDir}/{featureSlug}/{scenarioSlug}.ascii)
+// created by the generator.
 //
 // Expected: scenarios is a non-empty slice of scenario names; outputDir contains corresponding .ascii files.
 // Returns: 0 when all named scenarios are updated; 1 on any failure.
 // Side effects: creates or overwrites baseline files under goldenDir.
 func updateNamedBaselines(goldenDir, outputDir string, scenarios []string, out, errOut io.Writer) int {
 	updated := 0
-
 	for _, scenario := range scenarios {
-		asciiPath := filepath.Join(outputDir, vhsgen.Slugify(scenario)+".ascii")
-		gifPath := deriveGIFPath(asciiPath)
+		scenarioSlug := vhsgen.Slugify(scenario)
+		asciiPath, err := findASCIIFileForScenario(outputDir, scenarioSlug)
+		if err != nil {
+			fmt.Fprintf(errOut, "Error finding baseline for %q: %v\n", scenario, err)
+			return 1
+		}
 
+		gifPath := deriveGIFPath(asciiPath)
 		if err := vhsgen.UpdateBaseline(goldenDir, scenario, asciiPath, gifPath); err != nil {
 			fmt.Fprintf(errOut, "Error updating baseline for %q: %v\n", scenario, err)
 			return 1
 		}
-
 		fmt.Fprintf(out, "Updated: %s\n", scenario)
 		updated++
 	}
 
 	fmt.Fprintf(out, "Updated %d baselines.\n", updated)
-
 	return 0
 }
