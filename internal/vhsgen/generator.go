@@ -41,19 +41,19 @@ func resolveConfigPath(customPath string) (string, string, func(), error) {
 	tmpPath := f.Name()
 
 	if _, err := f.Write([]byte(defaultConfigContent)); err != nil {
-		f.Close()
-		os.Remove(tmpPath)
+		_ = f.Close()
+		_ = os.Remove(tmpPath)
 
 		return "", "", func() {}, fmt.Errorf("writing embedded config: %w", err)
 	}
 
 	if err := f.Close(); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath)
 
 		return "", "", func() {}, fmt.Errorf("closing temp config file: %w", err)
 	}
 
-	return tmpPath, warning, func() { os.Remove(tmpPath) }, nil
+	return tmpPath, warning, func() { _ = os.Remove(tmpPath) }, nil
 }
 
 // forbiddenPatterns returns patterns that must not appear in generated tape content.
@@ -125,7 +125,7 @@ func WriteTape(scenario ScenarioIR, config GeneratorConfig) error {
 	scenarioSlug := Slugify(scenario.Name)
 	dir := filepath.Join(config.OutputDir, featureSlug)
 
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("creating output directory %q: %w", dir, err)
 	}
 
