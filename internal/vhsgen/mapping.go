@@ -78,9 +78,12 @@ func init() {
 // Returns: VHS commands (or nil if intent unknown), translatable flag, and reason if untranslatable.
 // Side effects: None.
 func TranslateStep(stepText, stepType string) ([]VHSCommand, bool, string) {
-	_ = stepType
-
 	for _, m := range matchers {
+		// Skip if matcher requires specific step type and it doesn't match
+		if m.stepType != "" && m.stepType != stepType {
+			continue
+		}
+
 		matches := m.pattern.FindStringSubmatch(stepText)
 		if matches == nil {
 			continue
@@ -91,7 +94,13 @@ func TranslateStep(stepText, stepType string) ([]VHSCommand, bool, string) {
 		}
 
 		cmds := m.translate(matches)
-
+		if cmds == nil && m.category != "setup" {
+			intent := ""
+			if len(matches) > 1 {
+				intent = matches[1]
+			}
+			return nil, false, "unrecognised menu intent: " + intent
+		}
 		return cmds, true, ""
 	}
 

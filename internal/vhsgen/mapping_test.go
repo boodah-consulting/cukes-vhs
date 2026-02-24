@@ -94,9 +94,10 @@ var _ = Describe("TranslateStep", func() {
 
 		Context("unknown intent", func() {
 			It("matches the pattern but returns nil commands", func() {
-				cmds, translatable, _ := vhsgen.TranslateStep(`I select "nonexistent" from the menu`, "When")
-				Expect(translatable).To(BeTrue())
+				cmds, translatable, reason := vhsgen.TranslateStep(`I select "nonexistent" from the menu`, "When")
+				Expect(translatable).To(BeFalse())
 				Expect(cmds).To(BeNil())
+				Expect(reason).To(Equal("unrecognised menu intent: nonexistent"))
 			})
 		})
 	})
