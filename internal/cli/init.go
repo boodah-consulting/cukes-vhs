@@ -13,7 +13,7 @@ import (
 // runInit executes the init command.
 func runInit(opts *initOptions, out io.Writer) error {
 	// Ensure output directory exists
-	if err := os.MkdirAll(opts.outputDir, 0755); err != nil {
+	if err := os.MkdirAll(opts.outputDir, 0o750); err != nil {
 		return fmt.Errorf("creating output directory: %w", err)
 	}
 
@@ -28,7 +28,7 @@ func runInit(opts *initOptions, out io.Writer) error {
 
 	// Get embedded config and write to file
 	content := vhsgen.DefaultConfig()
-	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		return fmt.Errorf("writing config file: %w", err)
 	}
 
