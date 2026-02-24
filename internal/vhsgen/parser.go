@@ -53,6 +53,8 @@ func ParseFeatureDir(dir string, source SourceType) ([]ScenarioIR, error) {
 }
 
 func parseFeatureFile(path string, source SourceType) ([]ScenarioIR, error) {
+	path = filepath.Clean(path)
+
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %w", err)
