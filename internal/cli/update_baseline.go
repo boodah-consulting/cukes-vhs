@@ -4,8 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"github.com/boodah-consulting/cukesvhs/internal/vhsgen"
+	"io"
 )
 
 // updateBaselineOptions holds parsed flags for the update-baseline subcommand.

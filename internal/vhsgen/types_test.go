@@ -494,5 +494,5 @@ var _ = Describe("Types", func() {
 			id := vhsgen.BuildScenarioID(vhsgen.SourceBusiness, "Feature (v2)", "User's login & logout")
 			Expect(id).To(Equal("business/feature-v2/users-login-logout"))
 		})
-})
+	})
 })

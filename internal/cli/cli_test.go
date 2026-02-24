@@ -1008,7 +1008,6 @@ var _ = Describe("vhsgen CLI", func() {
 			})
 		})
 
-
 		Context("positional scenario name with nested feature directory", func() {
 			It("finds and updates the baseline from a subdirectory", func() {
 				goldenDir := GinkgoT().TempDir()
@@ -1288,7 +1287,6 @@ var _ = Describe("vhsgen CLI", func() {
 			Expect(result).To(Equal("/tmp/output/my-scenario.gif"))
 		})
 	})
-
 
 	Describe("findASCIIFileForScenario", func() {
 		Context("when ascii file is in a nested feature subdirectory", func() {

@@ -269,7 +269,6 @@ var _ = Describe("AnalyseScenarios", func() {
 		})
 	})
 
-
 	Describe("ScenarioID generation", func() {
 		It("populates ScenarioID as a composite of source, feature, and name", func() {
 			scenarios := []vhsgen.ScenarioIR{
