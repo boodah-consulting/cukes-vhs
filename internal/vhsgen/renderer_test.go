@@ -246,6 +246,60 @@ var _ = Describe("Renderer", func() {
 				Expect(result.Success).To(BeFalse())
 			})
 		})
+
+		Context("when output path attempts directory traversal", func() {
+			BeforeEach(func() {
+				writeFakeVHS(fakeVHSDir, 0)
+				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+			})
+
+			It("rejects relative paths that escape the tape directory", func() {
+				tapePath := writeTapeFile(tmpDir, "traversal.tape", []string{
+					"../../../etc/passwd",
+				})
+
+				renderer := vhsgen.NewRenderer()
+				result, err := renderer.RenderTape(tapePath, 30*time.Second)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("escapes tape directory"))
+				Expect(result.Success).To(BeFalse())
+			})
+
+			It("rejects gif paths that escape via parent traversal", func() {
+				tapePath := writeTapeFile(tmpDir, "evil-gif.tape", []string{
+					"../../evil.gif",
+				})
+
+				renderer := vhsgen.NewRenderer()
+				result, err := renderer.RenderTape(tapePath, 30*time.Second)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("escapes tape directory"))
+				Expect(result.Success).To(BeFalse())
+			})
+
+			It("rejects absolute paths outside the tape directory", func() {
+				tapePath := writeTapeFile(tmpDir, "absolute.tape", []string{
+					"/etc/shadow",
+				})
+
+				renderer := vhsgen.NewRenderer()
+				result, err := renderer.RenderTape(tapePath, 30*time.Second)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("escapes tape directory"))
+				Expect(result.Success).To(BeFalse())
+			})
+
+			It("allows valid relative paths within the tape directory", func() {
+				tapePath := writeTapeFile(tmpDir, "valid-nested.tape", []string{
+					"demos/vhs/valid.gif",
+				})
+
+				renderer := vhsgen.NewRenderer()
+				result, err := renderer.RenderTape(tapePath, 30*time.Second)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Success).To(BeTrue())
+			})
+		})
 	})
 
 	Describe("RenderAll", func() {

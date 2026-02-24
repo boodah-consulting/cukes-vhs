@@ -147,8 +147,15 @@ func parseOutputPaths(tapePath string) (gifPath, asciiPath string, err error) {
 		}
 
 		outPath := strings.TrimSpace(strings.TrimPrefix(line, "Output "))
+		rawOutPath := outPath
 		if !filepath.IsAbs(outPath) {
 			outPath = filepath.Join(tapeDir, outPath)
+		}
+
+		resolved := filepath.Clean(outPath)
+		cleanTapeDir := filepath.Clean(tapeDir) + string(os.PathSeparator)
+		if !strings.HasPrefix(resolved, cleanTapeDir) && resolved != filepath.Clean(tapeDir) {
+			return "", "", fmt.Errorf("output path %q escapes tape directory", rawOutPath)
 		}
 
 		switch {
