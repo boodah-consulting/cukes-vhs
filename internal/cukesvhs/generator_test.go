@@ -448,6 +448,7 @@ var _ = Describe("WriteTape", func() {
 
 	Describe("invalid output directory", func() {
 		It("returns an error when the directory cannot be created", func() {
+			skipIfWindows("unix path /invalid/... resolves differently on windows")
 			scenario := cukesvhs.ScenarioIR{
 				Name:    "Test",
 				Feature: "Test",
@@ -484,6 +485,7 @@ var _ = Describe("WriteTape", func() {
 
 	Describe("WriteFile error", func() {
 		It("returns error when output file cannot be written to read-only dir", func() {
+			skipIfWindows("os.Chmod does not restrict access on windows")
 			tmpDir := GinkgoT().TempDir()
 			featureDir := filepath.Join(tmpDir, "write-fail")
 			err := os.MkdirAll(featureDir, 0o755)

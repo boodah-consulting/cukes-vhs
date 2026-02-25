@@ -85,8 +85,9 @@ var _ = Describe("Renderer", func() {
 	Describe("RenderTape", func() {
 		Context("when timeout is zero", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 0)
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("uses the default timeout and succeeds", func() {
@@ -118,8 +119,9 @@ var _ = Describe("Renderer", func() {
 
 		Context("when VHS exits successfully", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 0)
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("returns a successful RenderResult", func() {
@@ -176,8 +178,9 @@ var _ = Describe("Renderer", func() {
 
 		Context("when VHS exits with non-zero status", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 1, "tape render failed: invalid command")
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("returns a result with Success=false and captured stderr", func() {
@@ -197,8 +200,9 @@ var _ = Describe("Renderer", func() {
 
 		Context("when VHS exits non-zero with no stderr output", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 2)
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("returns an error describing the exit failure", func() {
@@ -216,11 +220,12 @@ var _ = Describe("Renderer", func() {
 
 		Context("when VHS times out", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				script := "#!/bin/sh\nsleep 10\nexit 0\n"
 				path := filepath.Join(fakeVHSDir, "vhs")
 				Expect(os.WriteFile(path, []byte(script), 0o600)).To(Succeed())
 				Expect(os.Chmod(path, 0o755)).To(Succeed())
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("kills the process and returns a timeout error", func() {
@@ -238,8 +243,9 @@ var _ = Describe("Renderer", func() {
 
 		Context("when the tape file does not exist", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 0)
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("returns an error about missing tape file", func() {
@@ -252,8 +258,9 @@ var _ = Describe("Renderer", func() {
 
 		Context("when output path attempts directory traversal", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 0)
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("rejects relative paths that escape the tape directory", func() {
@@ -308,8 +315,9 @@ var _ = Describe("Renderer", func() {
 	Describe("RenderAll", func() {
 		Context("when timeout is zero", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 0)
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("uses the default timeout and succeeds", func() {
@@ -337,8 +345,9 @@ var _ = Describe("Renderer", func() {
 
 		Context("when the tape directory does not exist", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 0)
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("returns an error", func() {
@@ -351,8 +360,9 @@ var _ = Describe("Renderer", func() {
 
 		Context("when the directory contains no tape files", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 0)
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("returns an empty results slice with no error", func() {
@@ -365,8 +375,9 @@ var _ = Describe("Renderer", func() {
 
 		Context("when all tapes succeed", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 0)
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("returns results for each tape", func() {
@@ -399,8 +410,9 @@ var _ = Describe("Renderer", func() {
 
 		Context("when some tapes fail", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 1, "render error")
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("collects failures in results without stopping", func() {
@@ -421,8 +433,9 @@ var _ = Describe("Renderer", func() {
 
 		Context("rendering is sequential", func() {
 			BeforeEach(func() {
+				skipIfWindows("requires unix shell scripts")
 				writeFakeVHS(fakeVHSDir, 0)
-				Expect(os.Setenv("PATH", fakeVHSDir+":"+originalPATH)).To(Succeed())
+				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
 			It("processes tapes one at a time (results are in order)", func() {

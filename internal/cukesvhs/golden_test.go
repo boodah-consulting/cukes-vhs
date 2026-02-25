@@ -90,6 +90,7 @@ var _ = Describe("Golden baseline management", func() {
 
 		Context("when the golden dir cannot be created", func() {
 			It("returns an error mentioning the baseline dir", func() {
+				skipIfWindows("unix path /invalid/... resolves differently on windows")
 				err := cukesvhs.SaveBaseline("/invalid/nonexistent/cannot/create", "Scenario", asciiSrc, gifSrc)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("creating baseline dir"))
@@ -98,6 +99,7 @@ var _ = Describe("Golden baseline management", func() {
 
 		Context("when the baseline dir is read-only", func() {
 			It("returns an error when the destination file cannot be created", func() {
+				skipIfWindows("os.Chmod does not restrict access on windows")
 				readOnlyParent := GinkgoT().TempDir()
 				targetDir := filepath.Join(readOnlyParent, "locked-scenario")
 				Expect(os.MkdirAll(targetDir, 0o755)).To(Succeed())
@@ -250,6 +252,7 @@ var _ = Describe("Golden baseline management", func() {
 
 		Context("when the golden dir is not readable", func() {
 			It("returns an error mentioning the golden dir", func() {
+				skipIfWindows("os.Chmod does not restrict access on windows")
 				lockedDir := GinkgoT().TempDir()
 				Expect(os.Chmod(lockedDir, 0o000)).To(Succeed())
 				defer os.Chmod(lockedDir, 0o755) //nolint:errcheck
@@ -341,6 +344,7 @@ var _ = Describe("Golden baseline management", func() {
 
 		Context("when a scenario dir is not executable (stat fails for ASCII)", func() {
 			It("returns an error", func() {
+				skipIfWindows("os.Chmod does not restrict access on windows")
 				lockedSubdir := filepath.Join(goldenDir, "locked-sub")
 				Expect(os.MkdirAll(lockedSubdir, 0o755)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(lockedSubdir, "baseline.txt"), []byte("ascii"), 0o600)).To(Succeed())
