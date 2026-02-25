@@ -12,5 +12,5 @@ Show
 Type@100ms "./cukes-vhs list --count"
 Sleep 2s
 Enter
-Sleep 3s
+
 Ctrl+C
