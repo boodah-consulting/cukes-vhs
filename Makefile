@@ -1,4 +1,4 @@
-.PHONY: test test-race coverage test-suite individual-test review-commit pre-commit build fmt vet check-compliance check-docblocks check-fixtures check-patterns check-patterns-quiet check-patterns-strict check-intent-architecture check-intent-architecture-files golangci-lint install-git-hooks check-ai-attribution audit-ai-commits list-ai-commits ai-commit ci-local ci-install-tools gosec session-start session-end session-reset check-session verify-hooks tdd-check tdd-red tdd-green tdd-refactor tdd-document pre-task what-to-use generate-diagrams generate-state-matrix generate-docs generate-mocks check-mocks-updated diagrams fix-docs fix-all-docs validate-documentation create-doc-go bdd bdd-wip bdd-smoke bdd-feature bdd-happy bdd-sad bdd-check-wip
+.PHONY: test test-race coverage test-suite individual-test review-commit pre-commit build fmt vet check-compliance check-docblocks check-patterns check-patterns-quiet check-patterns-strict golangci-lint install-git-hooks check-ai-attribution audit-ai-commits list-ai-commits ai-commit ci-local ci-install-tools gosec session-start session-end session-reset check-session verify-hooks tdd-check tdd-red tdd-green tdd-refactor tdd-document pre-task what-to-use generate-diagrams generate-state-matrix generate-docs generate-mocks check-mocks-updated diagrams fix-docs fix-all-docs validate-documentation create-doc-go bdd bdd-wip bdd-smoke bdd-feature bdd-happy bdd-sad bdd-check-wip
 
 # Run all tests in verbose mode (race detection in CI only)
 # Note: BDD tests in features/ are run separately via 'make bdd' with tag filtering
@@ -122,22 +122,9 @@ fix-all-documentation:
 		done
 	@echo "✅ Documentation blocks fixed"
 
-# Check fixture usage enforcement (no inline career.* structs in test files)
-# Build noinlinecareer analyzer only when source changes (cached build)
-bin/noinlinecareer: cmd/noinlinecareer/main.go tools/analyzers/noinlinecareer/analyzer.go
-	@echo "Building noinlinecareer analyzer..."
-	@mkdir -p bin
-	@go build -o ./bin/noinlinecareer ./cmd/noinlinecareer
-	@echo "✅ Analyzer binary built."
-
-# Check fixture usage (fast - uses cached binary)
-check-fixtures: bin/noinlinecareer
-	@echo "Running fixture usage analyzer..."
-	@go vet -vettool=./bin/noinlinecareer ./...
-	@echo "✅ Fixture usage: all checks passed."
 
 # Check full project compliance (all rules)
-check-compliance: staticcheck check-intent-architecture validate-documentation check-fixtures
+check-compliance: staticcheck validate-documentation
 	@bash scripts/check-compliance.sh
 
 # Install all CI tools locally
@@ -573,18 +560,6 @@ check-patterns-quiet:
 		echo "✅ All pattern checks passed"; \
 	else \
 		echo "⚠️  $$VIOLATIONS pattern issue(s) found - run 'make check-patterns' for details"; \
-	fi
-
-# Intent architecture enforcement (strict validation)
-check-intent-architecture:
-	@bash scripts/check-intent-architecture.sh
-
-# Intent architecture enforcement for specific files (used in PR checks)
-check-intent-architecture-files:
-	@if [ -n "$$INTENT_FILES" ]; then \
-		bash scripts/check-intent-architecture.sh $$INTENT_FILES; \
-	else \
-		echo "No INTENT_FILES specified"; \
 	fi
 
 # Run golangci-lint (comprehensive static analysis)

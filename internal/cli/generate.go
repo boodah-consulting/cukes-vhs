@@ -37,20 +37,33 @@ func runGenerate(args []string, out io.Writer, errOut io.Writer) int {
 	}
 	stats := generateTapes(filtered, cfg)
 
+	var renderFailed bool
 	if stats.total > 0 {
 		fmt.Fprintf(out, "Rendering...\n")
 
 		renderer := cukesvhs.NewRenderer(*opts.binaryPath)
 		timeout := pipelineTimeout(*opts.timeoutSec)
 
-		_, renderErr := renderer.RenderAll(*opts.outputDir, timeout)
+		renderResults, renderErr := renderer.RenderAll(*opts.outputDir, timeout)
 		if renderErr != nil {
 			fmt.Fprintf(errOut, "Error rendering tapes: %v\n", renderErr)
+			renderFailed = true
+		} else {
+			for _, r := range renderResults {
+				if !r.Success {
+					fmt.Fprintf(errOut, "Render failed for %s: %s\n", r.TapePath, r.Error)
+					renderFailed = true
+				}
+			}
 		}
 	}
 
 	fmt.Fprintf(out, "Generated %d tapes (%d from features, %d from scenarios, %d warnings)\n",
 		stats.total, stats.fromBusiness, stats.fromVHSOnly, stats.warnings)
+
+	if renderFailed {
+		return 1
+	}
 
 	return 0
 }

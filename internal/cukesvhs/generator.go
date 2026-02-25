@@ -74,11 +74,14 @@ func GenerateTape(scenario ScenarioIR, config GeneratorConfig) (string, error) {
 	}
 
 	// Resolve config with fallback; clean up any temp file when done
-	resolvedConfigPath, _, cleanup, err := resolveConfigPath(configSourcePath)
+	resolvedConfigPath, warning, cleanup, err := resolveConfigPath(configSourcePath)
 	if err != nil {
 		return "", err
 	}
 	defer cleanup()
+	if warning != "" {
+		fmt.Fprint(os.Stderr, warning)
+	}
 
 	sleepDuration := config.SleepDuration
 	if sleepDuration == "" {

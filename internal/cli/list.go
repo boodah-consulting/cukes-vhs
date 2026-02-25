@@ -19,7 +19,6 @@ func runList(args []string, out io.Writer, errOut io.Writer) int {
 	asJSON := fs.Bool("json", false, "Output as JSON")
 	showCount := fs.Bool("count", false, "Show counts broken down by source")
 	showSteps := fs.Bool("steps", false, "Show translatable step patterns")
-	showAll := fs.Bool("all", false, "Show all available templates (not just featured ones)")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintf(errOut, "Error parsing flags: %v\n", err)
@@ -55,14 +54,14 @@ func runList(args []string, out io.Writer, errOut io.Writer) int {
 	results := cukesvhs.AnalyseScenarios(allScenarios)
 
 	if *showCount {
-		return runListCount(results, *showAll, out)
+		return runListCount(results, out)
 	}
 
 	if *asJSON {
-		return runListJSON(results, *showAll, out, errOut)
+		return runListJSON(results, out, errOut)
 	}
 
-	return runListTable(results, *showAll, out)
+	return runListTable(results, out)
 }
 
 // runListSteps outputs the translatable step patterns.
@@ -125,7 +124,7 @@ func runListSteps(asJSON bool, out io.Writer) int {
 }
 
 // runListCount outputs counts by source.
-func runListCount(results []cukesvhs.AnalysisResult, showAll bool, out io.Writer) int {
+func runListCount(results []cukesvhs.AnalysisResult, out io.Writer) int {
 	var (
 		businessTotal        int
 		businessTranslatable int
@@ -158,7 +157,7 @@ func runListCount(results []cukesvhs.AnalysisResult, showAll bool, out io.Writer
 }
 
 // runListJSON outputs the analysis results as JSON.
-func runListJSON(results []cukesvhs.AnalysisResult, showAll bool, out io.Writer, errOut io.Writer) int {
+func runListJSON(results []cukesvhs.AnalysisResult, out io.Writer, errOut io.Writer) int {
 	type jsonScenario struct {
 		ScenarioName string `json:"scenario_name"`
 		Feature      string `json:"feature"`
@@ -203,7 +202,7 @@ func runListJSON(results []cukesvhs.AnalysisResult, showAll bool, out io.Writer,
 }
 
 // runListTable outputs the analysis results as a formatted table.
-func runListTable(results []cukesvhs.AnalysisResult, showAll bool, out io.Writer) int {
+func runListTable(results []cukesvhs.AnalysisResult, out io.Writer) int {
 	colScenario := 40
 	colFeature := 25
 	colSource := 10
