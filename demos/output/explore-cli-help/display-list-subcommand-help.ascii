@@ -1,0 +1,240 @@
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --help
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --help
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --help
+Usage of list:
+  -all
+        Show all available templates (not just featured ones)
+  -count
+        Show counts broken down by source
+  -features string
+        Directory containing .feature files (default "features/")
+  -json
+        Output as JSON
+  -scenarios-dir string
+        Directory containing VHS-only .feature files (default "demos/scenarios/")
+  -steps
+        Show translatable step patterns
+Error parsing flags: flag: help requested
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --help
+Usage of list:
+  -all
+        Show all available templates (not just featured ones)
+  -count
+        Show counts broken down by source
+  -features string
+        Directory containing .feature files (default "features/")
+  -json
+        Output as JSON
+  -scenarios-dir string
+        Directory containing VHS-only .feature files (default "demos/scenarios/")
+  -steps
+        Show translatable step patterns
+Error parsing flags: flag: help requested
+> ^C
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────

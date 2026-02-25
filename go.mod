@@ -1,4 +1,4 @@
-module github.com/boodah-consulting/cukes-vhs
+module github.com/boodah-consulting/cukesvhs
 
 go 1.25.4
 

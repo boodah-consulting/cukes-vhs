@@ -119,16 +119,16 @@ run_check "Tests with race detector and coverage" \
 # 5. BUILD (from ci.yml - build job)
 # ============================================
 run_check "Build Linux AMD64" \
-    "GOOS=linux GOARCH=amd64 go build -o kariya-linux-amd64 ./cmd/cli && chmod +x kariya-linux-amd64"
+    "GOOS=linux GOARCH=amd64 go build -o cukes-vhs-linux-amd64 ./cmd/cukes-vhs && chmod +x cukes-vhs-linux-amd64"
 
 run_check "Build macOS AMD64" \
-    "GOOS=darwin GOARCH=amd64 go build -o kariya-darwin-amd64 ./cmd/cli && chmod +x kariya-darwin-amd64"
+    "GOOS=darwin GOARCH=amd64 go build -o cukes-vhs-darwin-amd64 ./cmd/cukes-vhs && chmod +x cukes-vhs-darwin-amd64"
 
 run_check "Build macOS ARM64" \
-    "GOOS=darwin GOARCH=arm64 go build -o kariya-darwin-arm64 ./cmd/cli && chmod +x kariya-darwin-arm64"
+    "GOOS=darwin GOARCH=arm64 go build -o cukes-vhs-darwin-arm64 ./cmd/cukes-vhs && chmod +x cukes-vhs-darwin-arm64"
 
 run_check "Build Windows AMD64" \
-    "GOOS=windows GOARCH=amd64 go build -o kariya-windows-amd64.exe ./cmd/cli"
+    "GOOS=windows GOARCH=amd64 go build -o cukes-vhs-windows-amd64.exe ./cmd/cukes-vhs"
 
 # ============================================
 # 6. SECURITY SCAN (from ci.yml - security job)
@@ -185,6 +185,6 @@ fi
 
 # Clean up build artifacts
 echo "Cleaning up build artifacts..."
-rm -f kariya-linux-amd64 kariya-darwin-amd64 kariya-darwin-arm64 kariya-windows-amd64.exe
+rm -f cukes-vhs-linux-amd64 cukes-vhs-darwin-amd64 cukes-vhs-darwin-arm64 cukes-vhs-windows-amd64.exe
 
 echo "Done!"
