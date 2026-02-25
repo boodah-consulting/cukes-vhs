@@ -1,16 +1,20 @@
-#!/usr/bin/env bash
-# Test coverage report for cukes-vhs
-# Non-interactive — generates coverage data and summary
+#!/bin/bash
 
-set -euo pipefail
+# Ensure the script fails if any command fails
+set -e
 
-echo "Running tests with coverage..."
-ginkgo -v --race --skip-package=testdata --coverprofile=coverage.out --covermode=atomic ./...
+# Create a directory for coverage reports
+COVERAGE_DIR="./coverage"
+mkdir -p "$COVERAGE_DIR"
 
-echo ""
-echo "Coverage summary:"
-go tool cover -func=coverage.out | tail -1
+# Set GOCOVERDIR for Go 1.24+ coverage
+export GOCOVERDIR="$COVERAGE_DIR"
 
-echo ""
-echo "Coverage report generated: coverage.out"
-echo "View HTML report: go tool cover -html=coverage.out"
+# Run Ginkgo tests with coverage
+ginkgo -v --race --covermode=atomic --coverprofile="$COVERAGE_DIR/coverage.out" --skip-package=testdata ./...
+
+# Generate HTML coverage report
+go tool cover -html="$COVERAGE_DIR/coverage.out" -o "$COVERAGE_DIR/coverage.html"
+
+echo "Coverage report generated in $COVERAGE_DIR"
+

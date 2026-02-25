@@ -12,7 +12,7 @@ set -e
 # 4. Adding AI attribution and human review trailers
 # 5. Creating or amending the commit
 #
-# Usage:
+# Usage: 
 #   make ai-commit FILE=/path/to/commit-msg.txt
 #   make ai-commit FILE=/path/to/commit-msg.txt NO_VERIFY=1
 #   make ai-commit AMEND=1                       # Amend HEAD with AI attribution
@@ -58,17 +58,17 @@ strip_ai_attribution() {
 if [ "$AMEND" = "1" ]; then
     echo -e "${BLUE}🔄 AMEND MODE: Adding AI attribution to HEAD commit${NC}"
     echo ""
-
+    
     # Safety check 1: Verify we have commits
     if ! git rev-parse HEAD &>/dev/null; then
         echo -e "${RED}❌ ERROR: No commits in repository${NC}"
         exit 1
     fi
-
+    
     # Safety check 2: Verify HEAD hasn't been pushed
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
     UPSTREAM=$(git rev-parse --abbrev-ref "@{upstream}" 2>/dev/null || echo "")
-
+    
     if [ -n "$UPSTREAM" ]; then
         # Check if HEAD is ahead of upstream
         AHEAD=$(git rev-list --count "$UPSTREAM..HEAD" 2>/dev/null || echo "0")
@@ -85,7 +85,7 @@ if [ "$AMEND" = "1" ]; then
     else
         echo -e "${YELLOW}⚠️  No upstream branch - assuming commit is unpushed${NC}"
     fi
-
+    
     # Safety check 3: Check if commit already has AI attribution
     CURRENT_MSG=$(git log -1 --pretty=%B)
     if echo "$CURRENT_MSG" | grep -q "^AI-Generated-By:"; then
@@ -101,25 +101,25 @@ if [ "$AMEND" = "1" ]; then
             exit 0
         fi
     fi
-
+    
     # Extract original message (strip any existing attribution)
     COMMIT_MSG=$(strip_ai_attribution "$CURRENT_MSG")
-
+    
     echo -e "${BLUE}📄 Extracted commit message from HEAD:${NC}"
     echo "─────────────────────────────────────────────"
     echo "$COMMIT_MSG"
     echo "─────────────────────────────────────────────"
-
+    
     # Get first line for validation
     FIRST_LINE=$(echo "$COMMIT_MSG" | head -n1 | sed 's/[[:space:]]*$//')
-
+    
     # Skip to Step 3 (validation) - no staged changes check needed for amend
-
+    
 else
     # ============================================================================
     # NORMAL MODE: Create new commit
     # ============================================================================
-
+    
     # Step 1: Validate file provided and read commit message
     if [ -z "$COMMIT_FILE" ]; then
         echo -e "${RED}❌ ERROR: Commit message file required${NC}"
@@ -243,25 +243,25 @@ detect_ai_agent() {
         echo "$AI_AGENT"
         return
     fi
-
+    
     # Detect Opencode (primary check)
     if [ "$OPENCODE" = "1" ] || [ -n "$OPENCODE" ]; then
         echo "Opencode"
         return
     fi
-
+    
     # Detect Claude Code
     if [ -n "$CLAUDE_CODE" ]; then
         echo "Claude Code"
         return
     fi
-
+    
     # Detect Cursor
     if [ -n "$CURSOR_SESSION" ] || [ -n "$CURSOR" ]; then
         echo "Cursor"
         return
     fi
-
+    
     # No agent detected
     echo ""
 }
@@ -273,7 +273,7 @@ detect_ai_model() {
         echo "$AI_MODEL"
         return
     fi
-
+    
     # No model detected
     echo ""
 }
@@ -285,29 +285,29 @@ detect_ai_model() {
 #           llama3-70b -> Llama3 70B
 format_model_name() {
     local model="$1"
-
+    
     # Special case for gpt-4o format (preserve -4o as hyphenated)
     if [[ "$model" =~ ^gpt-[0-9]+o$ ]]; then
         echo "$model" | sed 's/gpt/GPT/'
         return
     fi
-
+    
     # Replace hyphens with spaces
     local formatted="${model//-/ }"
-
+    
     # Capitalize first letter of each word
     formatted=$(echo "$formatted" | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')
-
+    
     # Fix version numbers: "4 5" -> "4.5", "5 1" -> "5.1"
     # Only for standalone single-digit numbers (use word boundaries)
     formatted=$(echo "$formatted" | sed -E 's/\b([0-9]) ([0-9])\b/\1.\2/g')
-
+    
     # Uppercase size suffixes (70b -> 70B, 8b -> 8B, 7b -> 7B)
     formatted=$(echo "$formatted" | sed -E 's/([0-9]+)b$/\1B/g')
-
+    
     # Uppercase special prefixes
     formatted=$(echo "$formatted" | sed 's/^Gpt/GPT/g')
-
+    
     echo "$formatted"
 }
 
@@ -408,7 +408,7 @@ if git commit $COMMIT_FLAGS; then
     git log -1 --pretty=%B
     echo "─────────────────────────────────────────────"
     echo ""
-
+    
     rm -f "$FINAL_MSG_FILE"
 else
     echo ""

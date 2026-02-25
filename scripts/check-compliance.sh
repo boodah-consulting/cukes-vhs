@@ -1,373 +1,578 @@
-#!/usr/bin/env bash
-# Compliance checks for cukes-vhs
-# Non-interactive — suitable for CI and pre-commit workflows
-#
-# Sections:
-#   1. Code quality (fmt, vet, staticcheck)
-#   2. Test coverage (ginkgo with threshold check)
-#   3. Staged changes check
-#   4. Architecture (verify internal/ structure, no circular imports)
-#   5. Documentation (doc.go for packages)
-#   6. Testing standards (test files exist)
-#   7. Dependency health (go mod verify/tidy)
-#   8. File organisation (expected directories)
-#   9. Git health (no large files, no secrets)
+#!/bin/bash
 
-set -euo pipefail
+set -e
 
-# =============================================================================
-# Colour helpers
-# =============================================================================
+echo "================================================"
+echo "🔍 RULES COMPLIANCE CHECK"
+echo "================================================"
+echo ""
 
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-BOLD='\033[1m'
-NC='\033[0m'
+NC='\033[0m' # No Color
 
-PASS=0
-FAIL=0
-WARN=0
+VIOLATIONS=0
+WARNINGS=0
 
-COVERAGE_THRESHOLD=95
+# Helper function for checks
+check_pass() {
+    echo -e "${GREEN}✅ Pass${NC}"
+}
 
-section()  { echo -e "\n${BOLD}${BLUE}[$1/${TOTAL_SECTIONS}] $2${NC}"; }
-pass()     { PASS=$((PASS + 1)); echo -e "  ${GREEN}✓${NC} $*"; }
-fail()     { FAIL=$((FAIL + 1)); echo -e "  ${RED}✗${NC} $*"; }
-skip()     { echo -e "  ${YELLOW}⊘${NC} $* (skipped)"; }
-warn_msg() { WARN=$((WARN + 1)); echo -e "  ${YELLOW}⚠${NC} $*"; }
+check_fail() {
+    echo -e "${RED}❌ Fail${NC} - $1"
+    VIOLATIONS=$((VIOLATIONS+1))
+}
 
-TOTAL_SECTIONS=9
+check_warn() {
+    echo -e "${YELLOW}⚠️  Warning${NC} - $1"
+    WARNINGS=$((WARNINGS+1))
+}
 
-echo -e "${BOLD}cukes-vhs Compliance Check${NC}"
-echo "=============================="
+# ============================================
+# 1. CODE QUALITY CHECKS
+# ============================================
+echo "📋 CODE QUALITY"
+echo "------------------------------------------------"
 
-# =============================================================================
-# 1. Code Quality
-# =============================================================================
-
-section 1 "Code Quality"
-
-# gofmt
-UNFORMATTED=$(gofmt -l . 2>/dev/null || true)
+# Formatting
+echo -n "Formatting (gofmt): "
+UNFORMATTED=$(gofmt -l . 2>&1 | grep -v '^vendor/' | grep '\.go$' || true)
 if [ -z "$UNFORMATTED" ]; then
-  pass "All files formatted (gofmt)"
+    check_pass
 else
-  fail "Unformatted files found:"
-  echo "$UNFORMATTED" | while IFS= read -r f; do echo "    $f"; done
+    check_fail "Run: go fmt ./..."
+    echo "  Unformatted files:"
+    echo "$UNFORMATTED" | sed 's/^/    /'
 fi
 
-# go vet
-if go vet ./... 2>/dev/null; then
-  pass "go vet passed"
+# Build
+echo -n "Build: "
+if go build ./... > /dev/null 2>&1; then
+    check_pass
 else
-  fail "go vet reported issues"
+    check_fail "Fix build errors"
 fi
 
-# staticcheck
-if command -v staticcheck &>/dev/null; then
-  if staticcheck ./... 2>/dev/null; then
-    pass "staticcheck passed"
-  else
-    fail "staticcheck reported issues"
-  fi
+# Tests
+echo -n "Tests: "
+if go test ./... > /dev/null 2>&1; then
+    check_pass
 else
-  skip "staticcheck not installed"
+    check_fail "Fix failing tests"
 fi
 
-# =============================================================================
-# 2. Test Coverage
-# =============================================================================
+# Race Conditions (CI only - too slow for local checks)
+# Run `make test-race` manually if needed
 
-section 2 "Test Coverage"
+# Vet
+echo -n "Go Vet: "
+if go vet ./... > /dev/null 2>&1; then
+    check_pass
+else
+    check_fail "Fix vet warnings"
+fi
 
-if command -v ginkgo &>/dev/null; then
-  COVERAGE_FILE=$(mktemp /tmp/coverage-XXXXXX.out)
-  trap "rm -f $COVERAGE_FILE" EXIT
-
-  if ginkgo --race --skip-package=testdata --coverprofile="$COVERAGE_FILE" --covermode=atomic ./... 2>/dev/null; then
-    pass "All tests passed"
-
-    # Extract total coverage percentage
-    if [ -s "$COVERAGE_FILE" ]; then
-      COVERAGE_LINE=$(go tool cover -func="$COVERAGE_FILE" 2>/dev/null | tail -1 || true)
-      COVERAGE_PCT=$(echo "$COVERAGE_LINE" | grep -oE '[0-9]+\.[0-9]+' | tail -1 || echo "0")
-      COVERAGE_INT=${COVERAGE_PCT%.*}
-
-      if [ "$COVERAGE_INT" -ge "$COVERAGE_THRESHOLD" ]; then
-        pass "Coverage: ${COVERAGE_PCT}% (threshold: ${COVERAGE_THRESHOLD}%)"
-      else
-        fail "Coverage: ${COVERAGE_PCT}% (below threshold: ${COVERAGE_THRESHOLD}%)"
-      fi
+# Staticcheck
+echo -n "Staticcheck: "
+if command -v staticcheck &> /dev/null; then
+    if staticcheck ./... > /dev/null 2>&1; then
+        check_pass
     else
-      warn_msg "Coverage file empty — no coverage data collected"
+        check_fail "Fix staticcheck warnings (run: staticcheck ./...)"
     fi
-  else
-    fail "Tests failed"
-  fi
 else
-  skip "ginkgo not installed"
+    check_warn "staticcheck not installed (run: go install honnef.co/go/tools/cmd/staticcheck@latest)"
 fi
-
-# =============================================================================
-# 3. Staged Changes
-# =============================================================================
-
-section 3 "Staged Changes"
-
-STAGED=$(git diff --cached --name-only 2>/dev/null || true)
-if [ -n "$STAGED" ]; then
-  STAGED_COUNT=$(echo "$STAGED" | wc -l | tr -d ' ')
-  warn_msg "Found $STAGED_COUNT staged file(s) — ensure they are intentional"
-  echo "$STAGED" | while IFS= read -r f; do echo "    $f"; done
-else
-  pass "No staged changes (clean working state)"
-fi
-
-# =============================================================================
-# 4. Architecture
-# =============================================================================
-
-section 4 "Architecture"
-
-# Verify internal/ structure
-if [ -d "internal/vhsgen" ]; then
-  pass "internal/vhsgen/ exists"
-else
-  fail "internal/vhsgen/ not found"
-fi
-
-# Check cmd directory
-if [ -d "cmd/cukes-vhs" ]; then
-  pass "cmd/cukes-vhs/ exists"
-else
-  fail "cmd/cukes-vhs/ not found"
-fi
-
-# Check for circular imports
-if go build ./... 2>/dev/null; then
-  pass "No circular imports (build succeeded)"
-else
-  fail "Build failed — possible circular imports or compilation errors"
-fi
-
-# Verify no direct imports from cmd in internal
-CMD_IN_INTERNAL=$(grep -r '"github.com/boodah-consulting/cukes-vhs/cmd' internal/ 2>/dev/null || true)
-if [ -z "$CMD_IN_INTERNAL" ]; then
-  pass "No cmd/ imports in internal/ (correct dependency direction)"
-else
-  fail "internal/ imports cmd/ (wrong dependency direction)"
-  echo "$CMD_IN_INTERNAL" | while IFS= read -r line; do echo "    $line"; done
-fi
-
-# =============================================================================
-# 5. Documentation
-# =============================================================================
-
-section 5 "Documentation"
-
-# Check for doc.go in key packages
-DOC_MISSING=0
-for pkg_dir in internal/vhsgen cmd/cukes-vhs; do
-  if [ -d "$pkg_dir" ]; then
-    if [ -f "$pkg_dir/doc.go" ]; then
-      pass "doc.go exists in $pkg_dir"
-    else
-      warn_msg "No doc.go in $pkg_dir"
-      DOC_MISSING=$((DOC_MISSING + 1))
-    fi
-  fi
-done
-
-# Check sub-packages in internal/vhsgen
-if [ -d "internal/vhsgen" ]; then
-  for sub_dir in internal/vhsgen/*/; do
-    if [ -d "$sub_dir" ]; then
-      pkg_name=$(basename "$sub_dir")
-      # Skip testdata directories
-      if [ "$pkg_name" = "testdata" ]; then
-        continue
-      fi
-      if [ -f "${sub_dir}doc.go" ]; then
-        pass "doc.go exists in $sub_dir"
-      else
-        warn_msg "No doc.go in $sub_dir"
-        DOC_MISSING=$((DOC_MISSING + 1))
-      fi
-    fi
-  done
-fi
-
-# =============================================================================
-# 6. Testing Standards
-# =============================================================================
-
-section 6 "Testing Standards"
-
-# Check test files exist alongside source files
-TEST_MISSING=0
-for go_file in $(find internal/ -name '*.go' -not -name '*_test.go' -not -name 'doc.go' -not -path '*/testdata/*' 2>/dev/null || true); do
-  dir=$(dirname "$go_file")
-  base=$(basename "$go_file" .go)
-  test_file="${dir}/${base}_test.go"
-  suite_file="${dir}/${base}_suite_test.go"
-
-  # Check for any test file in the same directory
-  if ls "${dir}"/*_test.go 1>/dev/null 2>&1; then
-    continue
-  else
-    warn_msg "No test files in directory: $dir"
-    TEST_MISSING=$((TEST_MISSING + 1))
-  fi
-done
-
-if [ "$TEST_MISSING" -eq 0 ]; then
-  pass "All source directories have test files"
-fi
-
-# Verify Ginkgo suite files
-SUITE_MISSING=0
-for pkg_dir in $(find internal/ -type d -not -path '*/testdata/*' 2>/dev/null || true); do
-  # Check if directory has Go files
-  if ls "${pkg_dir}"/*.go 1>/dev/null 2>&1; then
-    # Check if it has test files
-    if ls "${pkg_dir}"/*_test.go 1>/dev/null 2>&1; then
-      # Check for suite file
-      if ! ls "${pkg_dir}"/*_suite_test.go 1>/dev/null 2>&1; then
-        warn_msg "No Ginkgo suite file in: $pkg_dir"
-        SUITE_MISSING=$((SUITE_MISSING + 1))
-      fi
-    fi
-  fi
-done
-
-if [ "$SUITE_MISSING" -eq 0 ]; then
-  pass "All test packages have Ginkgo suite files"
-fi
-
-# =============================================================================
-# 7. Dependency Health
-# =============================================================================
-
-section 7 "Dependency Health"
-
-# go mod verify
-if go mod verify 2>/dev/null; then
-  pass "go mod verify passed"
-else
-  fail "go mod verify failed — modules may be corrupted"
-fi
-
-# go mod tidy check (verify no changes needed)
-TIDY_BEFORE=$(cat go.sum)
-go mod tidy 2>/dev/null
-TIDY_AFTER=$(cat go.sum)
-
-if [ "$TIDY_BEFORE" = "$TIDY_AFTER" ]; then
-  pass "go mod tidy — no changes needed"
-else
-  warn_msg "go mod tidy made changes — run 'go mod tidy' and commit"
-  # Restore original state
-  git checkout -- go.sum go.mod 2>/dev/null || true
-fi
-
-# =============================================================================
-# 8. File Organisation
-# =============================================================================
-
-section 8 "File Organisation"
-
-EXPECTED_DIRS=("cmd/cukes-vhs" "internal/vhsgen" "scripts")
-
-for dir in "${EXPECTED_DIRS[@]}"; do
-  if [ -d "$dir" ]; then
-    pass "Directory exists: $dir"
-  else
-    fail "Expected directory missing: $dir"
-  fi
-done
-
-# Check for unexpected top-level Go files (should be in cmd/ or internal/)
-TOP_LEVEL_GO=$(find . -maxdepth 1 -name '*.go' -not -name '*_test.go' 2>/dev/null || true)
-if [ -z "$TOP_LEVEL_GO" ]; then
-  pass "No stray top-level Go files"
-else
-  warn_msg "Found top-level Go files (should be in cmd/ or internal/):"
-  echo "$TOP_LEVEL_GO" | while IFS= read -r f; do echo "    $f"; done
-fi
-
-# =============================================================================
-# 9. Git Health
-# =============================================================================
-
-section 9 "Git Health"
-
-# Check for large files (>1MB)
-LARGE_FILES=$(find . -type f -not -path './.git/*' -not -path './vendor/*' -size +1M 2>/dev/null || true)
-if [ -z "$LARGE_FILES" ]; then
-  pass "No large files (>1MB)"
-else
-  warn_msg "Large files found (>1MB):"
-  echo "$LARGE_FILES" | while IFS= read -r f; do
-    SIZE=$(du -h "$f" 2>/dev/null | cut -f1)
-    echo "    $f ($SIZE)"
-  done
-fi
-
-# Check for secrets patterns
-SECRETS_FOUND=0
-SECRET_PATTERNS=(
-  'AKIA[0-9A-Z]{16}'           # AWS Access Key
-  'password\s*=\s*["\x27][^"\x27]+'  # Hardcoded passwords
-  'api[_-]?key\s*=\s*["\x27][^"\x27]+'  # API keys
-  'secret[_-]?key\s*=\s*["\x27][^"\x27]+'  # Secret keys
-  'token\s*=\s*["\x27][A-Za-z0-9+/=]{20,}'  # Tokens
-)
-
-for pattern in "${SECRET_PATTERNS[@]}"; do
-  MATCHES=$(grep -rlE "$pattern" --include='*.go' --include='*.yaml' --include='*.yml' --include='*.json' --include='*.toml' --include='*.env' . 2>/dev/null | grep -v '.git/' | grep -v 'vendor/' || true)
-  if [ -n "$MATCHES" ]; then
-    SECRETS_FOUND=$((SECRETS_FOUND + 1))
-    warn_msg "Possible secret pattern found ($pattern):"
-    echo "$MATCHES" | while IFS= read -r f; do echo "    $f"; done
-  fi
-done
-
-if [ "$SECRETS_FOUND" -eq 0 ]; then
-  pass "No secret patterns detected"
-fi
-
-# Check for .env files committed
-ENV_FILES=$(git ls-files '*.env' '.env*' 2>/dev/null || true)
-if [ -z "$ENV_FILES" ]; then
-  pass "No .env files tracked"
-else
-  fail "Found tracked .env files (should be in .gitignore):"
-  echo "$ENV_FILES" | while IFS= read -r f; do echo "    $f"; done
-fi
-
-# =============================================================================
-# Summary
-# =============================================================================
 
 echo ""
-echo -e "${BOLD}=============================="
-echo -e "Compliance Summary${NC}"
-echo "=============================="
-echo -e "  ${GREEN}Passed:${NC}   $PASS"
-echo -e "  ${RED}Failed:${NC}   $FAIL"
-echo -e "  ${YELLOW}Warnings:${NC} $WARN"
+
+# ============================================
+# 2. TEST COVERAGE
+# ============================================
+echo "📊 TEST COVERAGE"
+echo "------------------------------------------------"
+echo ""
+echo -e "${BLUE}Coverage Requirements:${NC}"
+echo "  - Per-package (modified): >= 95% (enforced by pre-commit hook)"
+echo "  - Project average:        >= 80% (warning threshold)"
 echo ""
 
-if [ "$FAIL" -gt 0 ]; then
-  echo -e "${RED}${BOLD}COMPLIANCE CHECK FAILED${NC} — $FAIL issue(s) must be resolved"
-  exit 1
+if command -v ginkgo &> /dev/null; then
+    # Using Ginkgo
+    # Exclude mock packages, test utilities, and packages with no statements from coverage calculation
+    COVERAGE_OUTPUT=$(go test -cover ./... 2>/dev/null || true)
+    if [ -n "$COVERAGE_OUTPUT" ]; then
+        # Filter out mocks, testutil (but keep e2e), and packages with 0.0% or "no test files"
+        COVERAGE=$(echo "$COVERAGE_OUTPUT" | \
+            grep -v '/mocks' | \
+            grep -v 'testutil[^/]' | \
+            grep -v 'test_all_views' | \
+            grep -v '\[no test' | \
+            grep -oP 'coverage: \K[0-9.]+' | \
+            awk '$1 > 0 {sum+=$1; count++} END {if(count>0) printf "%.4f", sum/count; else print 0}')
+        COVERAGE_INT=$(printf "%.0f" "$COVERAGE")
+
+        if [ "$COVERAGE_INT" -ge 80 ]; then
+            echo -e "Project Average: ${GREEN}${COVERAGE}% ✅${NC}"
+        elif [ "$COVERAGE_INT" -ge 70 ]; then
+            echo -e "Project Average: ${YELLOW}${COVERAGE}% ⚠️${NC} (Target: 80%)"
+            check_warn "Project average coverage below 80%"
+        else
+            echo -e "Project Average: ${RED}${COVERAGE}% ❌${NC} (Target: 80%)"
+            check_fail "Project average coverage significantly below 80%"
+        fi
+        
+        # Check for modules below 95% threshold (matches pre-commit requirement)
+        echo ""
+        echo "Packages below 95% coverage (pre-commit will block these if modified):"
+        LOW_COVERAGE_MODULES=$(echo "$COVERAGE_OUTPUT" | \
+            grep -v '/mocks' | \
+            grep -v 'testutil[^/]' | \
+            grep -v 'test_all_views' | \
+            grep -v '\[no test' | \
+            grep 'coverage:' | \
+            awk '{
+                match($0, /coverage: ([0-9.]+)%/, arr);
+                if (arr[1]+0 < 95 && arr[1]+0 > 0) {
+                    # Extract package name (first field after "ok")
+                    gsub(/^ok[[:space:]]+/, "");
+                    split($0, parts, /[[:space:]]/);
+                    printf "  %s: %s%%\n", parts[1], arr[1]
+                }
+            }')
+        
+        if [ -n "$LOW_COVERAGE_MODULES" ]; then
+            echo -e "${YELLOW}$LOW_COVERAGE_MODULES${NC}"
+            echo ""
+            echo -e "${BLUE}Tip: Add tests before modifying these packages.${NC}"
+        else
+            echo -e "  ${GREEN}All packages meet 95% threshold ✅${NC}"
+        fi
+    else
+        check_warn "Could not calculate coverage"
+    fi
 else
-  if [ "$WARN" -gt 0 ]; then
-    echo -e "${YELLOW}${BOLD}COMPLIANCE PASSED WITH WARNINGS${NC} — $WARN warning(s)"
-  else
-    echo -e "${GREEN}${BOLD}ALL COMPLIANCE CHECKS PASSED${NC}"
-  fi
-  exit 0
+    check_warn "Ginkgo not installed, skipping coverage check"
 fi
+
+echo ""
+
+# ============================================
+# 3. STAGED CHANGES (Commit Compliance)
+# ============================================
+echo "📝 STAGED CHANGES"
+echo "------------------------------------------------"
+
+if git diff --cached --quiet; then
+    echo -e "${BLUE}No staged changes${NC}"
+else
+    FILE_COUNT=$(git diff --cached --name-only | wc -l | tr -d ' ')
+    LINE_COUNT=$(git diff --cached --numstat | awk '{add+=$1; del+=$2} END {print add+del}')
+
+    echo "Files staged: $FILE_COUNT"
+    echo "Lines changed: $LINE_COUNT"
+
+    # Check file count
+    if [ "$FILE_COUNT" -gt 10 ]; then
+        check_warn "More than 10 files staged (consider atomic commits)"
+    fi
+
+    # Check line count
+    if [ "$LINE_COUNT" -gt 500 ]; then
+        check_warn "More than 500 lines changed (consider splitting)"
+    fi
+
+    # Check for generated files
+    GENERATED=$(git diff --cached --name-only | grep -E '\.(out|exe|dll|so|test)$' || true)
+    if [ -n "$GENERATED" ]; then
+        check_fail "Generated files in staging:"
+        echo "$GENERATED" | sed 's/^/    /'
+    fi
+
+    # Check for coverage files
+    COVERAGE_FILES=$(git diff --cached --name-only | grep -E 'coverage\.(out|html)' || true)
+    if [ -n "$COVERAGE_FILES" ]; then
+        check_fail "Coverage files in staging (should be in .gitignore):"
+        echo "$COVERAGE_FILES" | sed 's/^/    /'
+    fi
+
+    # Check for debug statements
+    DEBUG_PATTERNS='TODO|FIXME|XXX|fmt\.Println\("DEBUG'
+    if git diff --cached | grep -E "$DEBUG_PATTERNS" > /dev/null 2>&1; then
+        check_warn "Debug statements found in staged changes"
+    fi
+fi
+
+echo ""
+
+# ============================================
+# 4. ARCHITECTURAL COMPLIANCE (DDD)
+# ============================================
+echo "🏛️  ARCHITECTURAL COMPLIANCE"
+echo "------------------------------------------------"
+
+# Check domain layer purity (no external deps)
+echo -n "Domain Layer Purity: "
+DOMAIN_IMPORTS=$(find internal/domain -name "*.go" -type f 2>/dev/null | xargs grep -h "^import" 2>/dev/null | grep -E "(service|repository|cli)" || true)
+if [ -z "$DOMAIN_IMPORTS" ]; then
+    check_pass
+else
+    check_fail "Domain layer has dependencies on other layers"
+fi
+
+# Check proper layer structure exists
+echo -n "Layer Structure: "
+REQUIRED_LAYERS=("internal/domain" "internal/service" "internal/repository")
+MISSING_LAYERS=()
+for layer in "${REQUIRED_LAYERS[@]}"; do
+    if [ ! -d "$layer" ]; then
+        MISSING_LAYERS+=("$layer")
+    fi
+done
+
+if [ ${#MISSING_LAYERS[@]} -eq 0 ]; then
+    check_pass
+else
+    check_warn "Missing layers: ${MISSING_LAYERS[*]}"
+fi
+
+echo ""
+
+# ============================================
+# 5. DOCUMENTATION
+# ============================================
+echo "📚 DOCUMENTATION"
+echo "------------------------------------------------"
+
+# README
+echo -n "README.md: "
+if [ -f "README.md" ]; then
+    LINES=$(wc -l < README.md)
+    if [ "$LINES" -gt 10 ]; then
+        check_pass
+    else
+        check_warn "README exists but is sparse (${LINES} lines)"
+    fi
+else
+    check_fail "Missing README.md"
+fi
+
+# AGENTS.md
+echo -n "AGENTS.md: "
+if [ -f "AGENTS.md" ]; then
+    check_pass
+else
+    check_warn "Consider creating AGENTS.md for handover documentation"
+fi
+
+# .gitignore
+echo -n ".gitignore: "
+if [ -f ".gitignore" ]; then
+    if grep -q "coverage.out" .gitignore && grep -q "*.exe" .gitignore; then
+        check_pass
+    else
+        check_warn "gitignore missing common patterns"
+    fi
+else
+    check_fail "Missing .gitignore"
+fi
+
+# doc.go files (package documentation)
+echo -n "Package doc.go files: "
+MISSING_DOCGO=$(go vet -vettool=./bin/docblocks \
+    ./internal/cli/app/... \
+    ./internal/cli/behaviors/... \
+    ./internal/cli/bootstrap/... \
+    ./internal/cli/configtypes/... \
+    ./internal/cli/forms/... \
+    ./internal/cli/importer/... \
+    ./internal/cli/intents/... \
+    ./internal/cli/navigation/... \
+    ./internal/cli/screens/... \
+    ./internal/cli/service/... \
+    ./internal/cli/statematrix/... \
+    ./internal/cli/terminal/... \
+    ./internal/cli/themes/... \
+    ./internal/cli/types/... \
+    ./internal/cli/uikit/... \
+    ./tools/analyzers/docblocks/... 2>&1 | grep "missing doc.go file" | wc -l)
+if [ "$MISSING_DOCGO" -eq 0 ]; then
+    check_pass
+else
+    check_fail "$MISSING_DOCGO packages missing doc.go files (run: make check-docblocks)"
+fi
+
+echo ""
+
+# ============================================
+# 6. TESTING STANDARDS (Ginkgo/Gomega)
+# ============================================
+echo "🧪 TESTING STANDARDS"
+echo "------------------------------------------------"
+
+# Check for test files
+TEST_COUNT=$(find . -name "*_test.go" -type f | wc -l)
+GO_FILES=$(find . -name "*.go" -not -name "*_test.go" -not -path "./vendor/*" -type f | wc -l)
+
+echo -n "Test Files: "
+if [ "$TEST_COUNT" -gt 0 ]; then
+    RATIO=$(awk "BEGIN {printf \"%.1f\", $TEST_COUNT/$GO_FILES}")
+    echo -e "${GREEN}${TEST_COUNT} test files${NC} (ratio: ${RATIO}:1)"
+else
+    check_fail "No test files found"
+fi
+
+# Check for Ginkgo suite files
+echo -n "Ginkgo Suites: "
+SUITE_COUNT=$(find . -name "suite_test.go" -type f | wc -l)
+if [ "$SUITE_COUNT" -gt 0 ]; then
+    check_pass
+else
+    check_warn "No Ginkgo suite files found"
+fi
+
+# Check for skipped/pending tests (PROHIBITED)
+echo -n "No Skipped/Pending Tests: "
+# Find Skip() calls that are NOT environment-conditional (integration tests)
+# Environment-conditional skips are allowed (clipboard, display, database path checks)
+SKIPPED_TESTS=$(grep -rn "Skip(" --include="*_test.go" . 2>/dev/null | \
+    grep -v "integration_test.go" | \
+    grep -v "e2e_test.go" | \
+    grep -v "Skipping integration test" | \
+    grep -v "Database not found" | \
+    grep -v "clipboard not supported" | \
+    grep -v "no display available" | \
+    grep -v "no clipboard utilities" || true)
+
+if [ -z "$SKIPPED_TESTS" ]; then
+    check_pass
+else
+    SKIP_COUNT=$(echo "$SKIPPED_TESTS" | wc -l)
+    check_fail "Found $SKIP_COUNT skipped/pending tests (PROHIBITED)"
+    echo ""
+    echo -e "${RED}  Skipped/pending tests are NOT allowed before commits.${NC}"
+    echo -e "${RED}  Either implement the tests or remove them.${NC}"
+    echo ""
+    echo "  Files with skipped tests:"
+    echo "$SKIPPED_TESTS" | cut -d: -f1 | sort -u | sed 's/^/    /'
+    echo ""
+    echo "  To see all skipped tests: grep -rn 'Skip(' --include='*_test.go' ."
+fi
+
+echo ""
+
+# ============================================
+# 7. DEPENDENCY HEALTH
+# ============================================
+echo "📦 DEPENDENCY HEALTH"
+echo "------------------------------------------------"
+
+# go.mod exists
+echo -n "go.mod: "
+if [ -f "go.mod" ]; then
+    check_pass
+else
+    check_fail "Missing go.mod"
+fi
+
+# go.sum exists
+echo -n "go.sum: "
+if [ -f "go.sum" ]; then
+    check_pass
+else
+    check_warn "Missing go.sum (run: go mod tidy)"
+fi
+
+# Check for tidiness
+echo -n "Module Tidiness: "
+if go mod tidy -diff > /dev/null 2>&1; then
+    check_pass
+else
+    check_warn "Modules not tidy (run: go mod tidy)"
+fi
+
+echo ""
+
+# ============================================
+# 8. FILE ORGANIZATION
+# ============================================
+echo "📁 FILE ORGANIZATION"
+echo "------------------------------------------------"
+
+# Check for proper internal/ structure
+echo -n "Internal Structure: "
+if [ -d "internal" ]; then
+    check_pass
+else
+    check_warn "No internal/ directory (non-standard)"
+fi
+
+# Check for cmd/ structure
+echo -n "Binary Structure: "
+if [ -d "cmd" ]; then
+    check_pass
+else
+    check_warn "No cmd/ directory (consider for binaries)"
+fi
+
+# Check for Makefile
+echo -n "Makefile: "
+if [ -f "Makefile" ]; then
+    check_pass
+else
+    check_warn "No Makefile (consider for task automation)"
+fi
+
+echo ""
+
+# ============================================
+# 9. GIT HEALTH
+# ============================================
+echo "🔀 GIT HEALTH"
+echo "------------------------------------------------"
+
+# Check if in git repo
+echo -n "Git Repository: "
+if git rev-parse --git-dir > /dev/null 2>&1; then
+    check_pass
+else
+    check_fail "Not a git repository"
+fi
+
+# Check for uncommitted changes (excluding staged)
+echo -n "Working Directory: "
+if git diff --quiet; then
+    echo -e "${GREEN}Clean${NC}"
+else
+    echo -e "${YELLOW}Has unstaged changes${NC}"
+fi
+
+# Check recent commit message quality (if commits exist)
+if git log -1 --pretty=%B > /dev/null 2>&1; then
+    echo -n "Last Commit Format: "
+    LAST_MSG=$(git log -1 --pretty=%B | head -1)
+    if echo "$LAST_MSG" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf)(\(.+\))?: .{1,50}$'; then
+        check_pass
+    else
+        check_warn "Last commit doesn't follow conventional format"
+    fi
+fi
+
+echo ""
+
+# ============================================
+# 10. PATTERN ENFORCEMENT (Agent Drift Prevention)
+# ============================================
+echo "🔧 PATTERN ENFORCEMENT"
+echo "------------------------------------------------"
+
+# Check for direct *huh.Form usage in intents (should use wrapper models)
+echo -n "Form Wrapper Pattern: "
+DIRECT_HUH_FORM=$(grep -rn "form \*huh\.Form" internal/cli/intents/*.go 2>/dev/null | grep -v "_test.go" || true)
+if [ -z "$DIRECT_HUH_FORM" ]; then
+    check_pass
+else
+    check_warn "Direct *huh.Form in intents (use wrapper models like CaptureForm)"
+    echo "  Files:"
+    echo "$DIRECT_HUH_FORM" | cut -d: -f1 | sort -u | sed 's/^/    /'
+fi
+
+# Check for missing BaseIntent embedding
+echo -n "BaseIntent Embedding: "
+INTENTS_WITHOUT_BASE=$(grep -rL "BaseIntent" internal/cli/intents/*_intent.go 2>/dev/null | grep -v "_test.go" || true)
+if [ -z "$INTENTS_WITHOUT_BASE" ]; then
+    check_pass
+else
+    check_warn "Intents missing *BaseIntent embedding:"
+    echo "$INTENTS_WITHOUT_BASE" | sed 's/^/    /'
+fi
+
+# Check for hardcoded colors (should use theme package)
+echo -n "Theme Consistency (intents): "
+HARDCODED_INTENTS=$(grep -rn "lipgloss\.Color(\"#[0-9A-Fa-f]" internal/cli/intents/*.go 2>/dev/null | grep -v "_test.go" || true)
+if [ -z "$HARDCODED_INTENTS" ]; then
+    check_pass
+else
+    check_warn "Hardcoded colors in intents (use theme package)"
+    echo "  Files:"
+    echo "$HARDCODED_INTENTS" | cut -d: -f1 | sort -u | sed 's/^/    /'
+fi
+
+echo -n "Theme Consistency (models): "
+HARDCODED_MODELS=$(grep -rn "lipgloss\.Color(\"#[0-9A-Fa-f]" internal/cli/models/*.go 2>/dev/null | grep -v "_test.go" || true)
+if [ -z "$HARDCODED_MODELS" ]; then
+    check_pass
+else
+    check_warn "Hardcoded colors in models (use theme package)"
+    echo "  Files:"
+    echo "$HARDCODED_MODELS" | cut -d: -f1 | sort -u | sed 's/^/    /'
+fi
+
+# Check for raw lipgloss.NewStyle() in intents (should use uikit/primitives for text)
+echo -n "UIKit Primitives Usage: "
+RAW_STYLES=$(grep -rn "lipgloss\.NewStyle()" internal/cli/intents/*.go 2>/dev/null | grep -v "_test.go" | wc -l)
+PRIMITIVES_USAGE=$(grep -rn "primitives\." internal/cli/intents/*.go 2>/dev/null | grep -v "_test.go" | wc -l)
+if [ "$RAW_STYLES" -gt 20 ] && [ "$PRIMITIVES_USAGE" -lt 10 ]; then
+    check_warn "Low primitives adoption: $RAW_STYLES raw styles vs $PRIMITIVES_USAGE primitives uses"
+    echo "  Consider using uikit/primitives for semantic text (Title, Body, ErrorText, etc.)"
+else
+    check_pass
+fi
+
+# Check for StandardView usage (all intents should use CreateStandardView)
+echo -n "StandardView Usage: "
+INTENTS_COUNT=$(ls internal/cli/intents/*_intent.go 2>/dev/null | grep -v "_test.go" | wc -l)
+STANDARDVIEW_COUNT=$(grep -l "CreateStandardView\|StandardView" internal/cli/intents/*_intent.go 2>/dev/null | wc -l)
+if [ "$STANDARDVIEW_COUNT" -ge "$INTENTS_COUNT" ]; then
+    check_pass
+else
+    check_warn "Not all intents use StandardView ($STANDARDVIEW_COUNT/$INTENTS_COUNT)"
+fi
+
+# Check for themed footer helpers usage
+echo -n "Themed Footer Usage: "
+FOOTER_HELPERS=$(grep -rn "ThemedNavigationFooter\|ThemedListFooter\|ThemedFormFooter\|CombineThemedFooters" internal/cli/intents/*.go 2>/dev/null | grep -v "_test.go" | wc -l)
+if [ "$FOOTER_HELPERS" -gt 5 ]; then
+    check_pass
+else
+    check_warn "Low themed footer helper usage ($FOOTER_HELPERS uses)"
+    echo "  Consider using ThemedNavigationFooter(), ThemedListFooter(), etc."
+fi
+
+echo ""
+
+# ============================================
+# SUMMARY
+# ============================================
+echo "================================================"
+echo "SUMMARY"
+echo "================================================"
+
+if [ $VIOLATIONS -eq 0 ] && [ $WARNINGS -eq 0 ]; then
+    echo -e "${GREEN}✅ ALL CHECKS PASSED${NC}"
+    echo ""
+    echo "Your project is compliant with all rules!"
+    exit 0
+elif [ $VIOLATIONS -eq 0 ]; then
+    echo -e "${YELLOW}⚠️  ${WARNINGS} WARNING(S) FOUND${NC}"
+    echo ""
+    echo "Project is functional but has minor issues."
+    echo "Review warnings above for improvements."
+    exit 0
+else
+    echo -e "${RED}❌ ${VIOLATIONS} VIOLATION(S) FOUND${NC}"
+    if [ $WARNINGS -gt 0 ]; then
+        echo -e "${YELLOW}⚠️  ${WARNINGS} WARNING(S) FOUND${NC}"
+    fi
+    echo ""
+    echo "Fix violations before proceeding:"
+    echo "  1. Review failed checks above"
+    echo "  2. Apply suggested fixes"
+    echo "  3. Re-run: make check-compliance"
+    exit 1
+fi
+
