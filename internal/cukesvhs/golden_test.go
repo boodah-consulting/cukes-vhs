@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/boodah-consulting/cukesvhs/internal/cukesvhs"
+	"github.com/boodah-consulting/cukes-vhs/internal/cukesvhs"
 )
 
 var _ = Describe("Golden baseline management", func() {

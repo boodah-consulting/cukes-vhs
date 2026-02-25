@@ -4,7 +4,7 @@ package main
 import (
 	"os"
 
-	"github.com/boodah-consulting/cukesvhs/internal/cli"
+	"github.com/boodah-consulting/cukes-vhs/internal/cli"
 )
 
 var version = "dev"

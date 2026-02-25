@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/boodah-consulting/cukesvhs/internal/cukesvhs"
+	"github.com/boodah-consulting/cukes-vhs/internal/cukesvhs"
 )
 
 // runInit executes the init command.
