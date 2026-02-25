@@ -33,8 +33,8 @@ clean-coverage:
 
 # Build the application
 build:
-	@echo "Building KaRiya..."
-	@go build -o kariya ./cmd/cli
+	@echo "Building cukes-vhs..."
+	@go build -o cukes-vhs ./cmd/cukes-vhs
 
 # Format code
 fmt:
