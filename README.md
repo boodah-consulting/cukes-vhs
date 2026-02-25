@@ -40,8 +40,8 @@ cukes-vhs update-baseline
 
 ## Demo
 
-### Help Display
-![Help Display](demos/explore-cli-help/display-top-level-help.gif)
+### Run Tapes
+![Run Tapes](demos/run-generated-tapes/run-tape-with-vhs.gif)
 
 ### List Scenarios
 ![List Scenarios](demos/list-available-scenarios/list-all-translatable-scenarios.gif)
