@@ -1,0 +1,240 @@
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all --json
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all --json
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all --json
+Parsing...
+{
+  "scenarios": [
+    {
+      "scenario_name": "Generate all translatable tapes",
+      "feature": "Generate VHS tape files",
+      "source": "business",
+      "translatable": true
+    },
+    {
+      "scenario_name": "Generate tapes for a specific feature",
+      "feature": "Generate VHS tape files",
+      "source": "business",
+      "translatable": true
+    },
+    {
+      "scenario_name": "Generate tapes with verbose output",
+      "feature": "Generate VHS tape files",
+      "source": "business",
+      "translatable": true
+    },
+    {
+      "scenario_name": "Display top-level help",
+      "feature": "Explore CLI help",
+      "source": "business",
+      "translatable": true
+    },
+    {
+      "scenario_name": "Display list subcommand help",
+      "feature": "Explore CLI help",
+      "source": "business",
+      "translatable": true
+    },
+    {
+      "scenario_name": "Display generate subcommand help",
+      "feature": "Explore CLI help",
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all --json
+Parsing...
+{
+  "scenarios": [
+    {
+      "scenario_name": "Generate all translatable tapes",
+      "feature": "Generate VHS tape files",
+      "source": "business",
+      "translatable": true
+    },
+    {
+      "scenario_name": "Generate tapes for a specific feature",
+      "feature": "Generate VHS tape files",
+      "source": "business",
+      "translatable": true
+    },
+    {
+      "scenario_name": "Generate tapes with verbose output",
+      "feature": "Generate VHS tape files",
+      "source": "business",
+      "translatable": true
+    },
+    {
+      "scenario_name": "Display top-level help",
+      "feature": "Explore CLI help",
+      "source": "business",
+      "translatable": true
+    },
+    {
+      "scenario_name": "Display list subcommand help",
+      "feature": "Explore CLI help",
+      "source": "business",
+      "translatable": true
+    },
+    {
+      "scenario_name": "Display generate subcommand help",
+      "feature": "Explore CLI help",
+────────────────────────────────────────────────────────────────────────────────

@@ -38,6 +38,17 @@ cukes-vhs run
 cukes-vhs update-baseline
 ```
 
+## Demo
+
+### Help Display
+![Help Display](demos/explore-cli-help/display-top-level-help.gif)
+
+### List Scenarios
+![List Scenarios](demos/list-available-scenarios/list-all-translatable-scenarios.gif)
+
+### Generate Tapes
+![Generate Tapes](demos/generate-vhs-tape-files/generate-all-translatable-tapes.gif)
+
 ## Development
 
 ### Prerequisites
@@ -71,7 +82,7 @@ cmd/
   cukes-vhs/       # CLI entry point
   docblocks/       # Documentation analyzer
 internal/
-  vhsgen/          # Core library (parser, generator, renderer, etc.)
+  cukesvhs/          # Core library (parser, generator, renderer, etc.)
     templates/     # VHS tape templates (go:embed)
 tools/
   analyzers/

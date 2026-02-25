@@ -23,8 +23,8 @@ cukes-vhs-*
 /cli
 
 # IDE / Editor
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
@@ -76,12 +76,14 @@ PLAN.md
 # Output (project-specific)
 *.tape
 !internal/cukesvhs/config.tape
+!demos/**/*.tape
 *.gif
-!demos/golden/**/*.gif
+!demos/**/*.gif
 *.txt
 !README.md
 !LICENSE
-!demos/golden/**/*.txt
+!demos/**/*.txt
 
 # Sisyphus
 .sisyphus/
+.backup-worktrees/

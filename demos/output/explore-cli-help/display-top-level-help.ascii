@@ -1,0 +1,240 @@
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs --help
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs --help
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs --help
+cukes-vhs — VHS tape generator for Cucumber features
+
+Usage:
+  cukes-vhs init [flags]              Initialise config file for customisation
+  cukes-vhs list [flags]              List scenarios and their translatability
+  cukes-vhs generate [flags]          Generate VHS tape files from scenarios
+  cukes-vhs run [flags]               Full pipeline: generate → render → validate
+  cukes-vhs update-baseline [flags]   Accept current output as new golden baseline
+
+init flags:
+  --force     Overwrite existing config file
+  --output    Output directory (default: config/)
+
+list flags:
+  --features DIR       Directory with .feature files (default: features/)
+  --scenarios-dir DIR  Directory with VHS-only .feature files (default: demos/scenarios/)
+  --json               Output as JSON
+  --count              Show counts broken down by source
+  --steps              Show translatable step patterns
+
+generate flags:
+  --all                Generate for all translatable scenarios
+  --feature NAME       Filter by feature name
+  --scenario NAME      Filter by scenario name
+  --features DIR       Directory with .feature files (default: features/)
+  --scenarios-dir DIR  Directory with VHS-only .feature files (default: demos/scenarios/)
+  --output DIR        Output directory (required)
+  --config-source PATH Path to config tape file (default: config/config.tape, falls back to embedded)
+  --verbose           Verbose output
+  --timeout N         Per-tape render timeout in seconds (default: 120)
+
+run flags:
+  --all                Run for all translatable scenarios
+  --feature NAME       Filter by feature name
+  --scenario NAME      Filter by scenario name
+  --features DIR       Directory with .feature files (default: features/)
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs --help
+cukes-vhs — VHS tape generator for Cucumber features
+
+Usage:
+  cukes-vhs init [flags]              Initialise config file for customisation
+  cukes-vhs list [flags]              List scenarios and their translatability
+  cukes-vhs generate [flags]          Generate VHS tape files from scenarios
+  cukes-vhs run [flags]               Full pipeline: generate → render → validate
+  cukes-vhs update-baseline [flags]   Accept current output as new golden baseline
+
+init flags:
+  --force     Overwrite existing config file
+  --output    Output directory (default: config/)
+
+list flags:
+  --features DIR       Directory with .feature files (default: features/)
+  --scenarios-dir DIR  Directory with VHS-only .feature files (default: demos/scenarios/)
+  --json               Output as JSON
+  --count              Show counts broken down by source
+  --steps              Show translatable step patterns
+
+generate flags:
+  --all                Generate for all translatable scenarios
+  --feature NAME       Filter by feature name
+  --scenario NAME      Filter by scenario name
+  --features DIR       Directory with .feature files (default: features/)
+  --scenarios-dir DIR  Directory with VHS-only .feature files (default: demos/scenarios/)
+  --output DIR        Output directory (required)
+  --config-source PATH Path to config tape file (default: config/config.tape, falls back to embedded)
+  --verbose           Verbose output
+  --timeout N         Per-tape render timeout in seconds (default: 120)
+
+run flags:
+  --all                Run for all translatable scenarios
+  --feature NAME       Filter by feature name
+  --scenario NAME      Filter by scenario name
+  --features DIR       Directory with .feature files (default: features/)
+────────────────────────────────────────────────────────────────────────────────

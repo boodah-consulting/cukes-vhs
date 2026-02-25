@@ -1,0 +1,240 @@
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all
+Parsing...
+Scenario                                  Feature                    Source      Translatable  Reason
+---------------------------------------------------------------------------------------------------------------------
+------------------
+Generate all translatable tapes           Generate VHS tape files    business    yes
+Generate tapes for a specific feature     Generate VHS tape files    business    yes
+Generate tapes with verbose output        Generate VHS tape files    business    yes
+Display top-level help                    Explore CLI help           business    yes
+Display list subcommand help              Explore CLI help           business    yes
+Display generate subcommand help          Explore CLI help           business    yes
+List all translatable scenarios           List available scenarios   business    yes
+List scenarios with JSON output           List available scenarios   business    yes
+List translatable step patterns           List available scenarios   business    yes
+Show scenario counts by source            List available scenarios   business    yes
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> ./cukes-vhs list --all
+Parsing...
+Scenario                                  Feature                    Source      Translatable  Reason
+---------------------------------------------------------------------------------------------------------------------
+------------------
+Generate all translatable tapes           Generate VHS tape files    business    yes
+Generate tapes for a specific feature     Generate VHS tape files    business    yes
+Generate tapes with verbose output        Generate VHS tape files    business    yes
+Display top-level help                    Explore CLI help           business    yes
+Display list subcommand help              Explore CLI help           business    yes
+Display generate subcommand help          Explore CLI help           business    yes
+List all translatable scenarios           List available scenarios   business    yes
+List scenarios with JSON output           List available scenarios   business    yes
+List translatable step patterns           List available scenarios   business    yes
+Show scenario counts by source            List available scenarios   business    yes
+> ^C
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
