@@ -1,7 +1,8 @@
-.PHONY: test test-race coverage test-suite individual-test review-commit pre-commit build fmt vet check-compliance check-docblocks check-patterns check-patterns-quiet check-patterns-strict golangci-lint install-git-hooks check-ai-attribution audit-ai-commits list-ai-commits ai-commit ci-local ci-install-tools gosec session-start session-end session-reset check-session verify-hooks tdd-check tdd-red tdd-green tdd-refactor tdd-document pre-task what-to-use generate-diagrams generate-state-matrix generate-docs generate-mocks check-mocks-updated diagrams fix-docs fix-all-docs validate-documentation create-doc-go bdd bdd-wip bdd-smoke bdd-feature bdd-happy bdd-sad bdd-check-wip
+.PHONY: test test-race coverage test-suite individual-test review-commit pre-commit build fmt vet check-compliance check-docblocks check-patterns check-patterns-quiet check-patterns-strict golangci-lint install-git-hooks check-ai-attribution audit-ai-commits list-ai-commits ai-commit ci-local ci-install-tools gosec session-start session-end session-reset check-session verify-hooks tdd-check tdd-red tdd-green tdd-refactor tdd-document pre-task what-to-use generate-diagrams generate-state-matrix generate-docs generate-mocks check-mocks-updated diagrams fix-docs fix-all-docs validate-documentation create-doc-go
 
 # Run all tests in verbose mode (race detection in CI only)
-# Note: BDD tests in features/ are run separately via 'make bdd' with tag filtering
+# Note: features/*.feature files are EXAMPLE INPUTS for cukes-vhs to process,
+# not executable BDD tests. The CLI is tested via Ginkgo specs in internal/.
 test:
 	ginkgo -v --skip-package=testdata,features ./...
 
@@ -639,57 +640,14 @@ new-intent:
 	@bash scripts/new-intent.sh "$(NAME)"
 
 # ============================================================================
-# BDD Testing (Godog)
+# BDD Testing
 # ============================================================================
-
-## Run all BDD feature tests (excludes @wip)
-bdd:
-	@echo "Running BDD tests..."
-	@go test -v ./features/... -test.run ^TestFeatures$$ --godog.tags='~@wip'
-
-## Run BDD tests tagged with @wip
-bdd-wip:
-	@echo "Running BDD @wip tests..."
-	@go test -v ./features/... -test.run ^TestFeatures$$ -godog.tags=@wip
-
-## Run BDD smoke tests
-bdd-smoke:
-	@echo "Running BDD @smoke tests..."
-	@go test -v ./features/... -test.run ^TestFeatures$$ -godog.tags=@smoke
-
-## Run specific feature (FEATURE=scenario_name)
-bdd-feature:
-	@if [ -z "$(FEATURE)" ]; then \
-		echo "Usage: make bdd-feature FEATURE=scenario_name"; \
-		exit 1; \
-	fi
-	@go test -v ./features/... -test.run "^TestFeatures$$/$(FEATURE)"
-
-## Run BDD happy path scenarios (complete successful workflows, excludes @wip)
-bdd-happy:
-	@echo "Running BDD @happy path scenarios..."
-	@go test -v ./features/... -test.run ^TestFeatures$$ --godog.tags='@happy && ~@wip'
-
-## Run BDD sad path scenarios (error cases and recovery, excludes @wip)
-bdd-sad:
-	@echo "Running BDD @sad path scenarios..."
-	@go test -v ./features/... -test.run ^TestFeatures$$ --godog.tags='@sad && ~@wip'
-
-## Check for @wip tags in feature files (CI warning)
-bdd-check-wip:
-	@echo "Checking for @wip tags in feature files..."
-	@WIP_COUNT=$$(grep -r '@wip' features/*.feature 2>/dev/null | wc -l); \
-	if [ "$$WIP_COUNT" -gt 0 ]; then \
-		echo ""; \
-		echo "⚠️  Found $$WIP_COUNT @wip tagged scenarios:"; \
-		echo ""; \
-		grep -rn '@wip' features/*.feature 2>/dev/null | head -20; \
-		echo ""; \
-		echo "These scenarios are excluded from CI but should be completed."; \
-		echo "Run 'make bdd-wip' to execute them."; \
-	else \
-		echo "✅ No @wip tags found - all BDD scenarios are active"; \
-	fi
+# NOTE: features/*.feature files are EXAMPLE INPUTS for cukes-vhs to convert
+# into VHS tapes. They are NOT executable godog tests. The CLI functionality
+# is tested via 127+ Ginkgo specs in internal/cukesvhs/ and internal/cli/.
+#
+# To test cukes-vhs, run: make test
+# To see the feature files processed: ./cukes-vhs list --source features/
 
 # Show help for all available targets
 help:
@@ -703,12 +661,6 @@ help:
 	@echo "  make test-suite        - Run specific suite (SUITE=path)"
 	@echo "  make individual-test   - Run specific test (TEST=name)"
 	@echo "  make coverage          - Generate coverage report"
-	@echo "  make bdd               - Run all BDD feature tests"
-	@echo "  make bdd-smoke         - Run BDD @smoke tests only"
-	@echo "  make bdd-wip           - Run BDD @wip tests only"
-	@echo "  make bdd-happy         - Run @happy path scenarios (for VHS)"
-	@echo "  make bdd-sad           - Run @sad path scenarios"
-	@echo "  make bdd-feature FEATURE=x - Run specific BDD feature"
 	@echo ""
 	@echo "🔍 Quality Checks:"
 	@echo "  make check-compliance       - Full rules compliance check"
