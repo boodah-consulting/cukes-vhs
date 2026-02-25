@@ -5,6 +5,13 @@ import (
 	"io"
 )
 
+var cliVersion = "dev"
+
+// SetVersion sets the version string to be displayed by --version.
+func SetVersion(v string) {
+	cliVersion = v
+}
+
 // Run dispatches CLI subcommands based on args.
 //
 // Expected: args is os.Args[1:]; out and errOut are non-nil writers.
@@ -32,6 +39,9 @@ func Run(args []string, out io.Writer, errOut io.Writer) int {
 		return runUpdateBaseline(rest, out, errOut)
 	case "--help", "-h", "help":
 		printUsageTo(out)
+		return 0
+	case "--version", "-v", "version":
+		fmt.Fprintf(out, "cukes-vhs version %s\n", cliVersion)
 		return 0
 	default:
 		fmt.Fprintf(errOut, "Error: unknown subcommand %q\n\n", subcommand)

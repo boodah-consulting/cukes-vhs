@@ -171,10 +171,10 @@ func parseOutputPaths(tapePath string) (gifPath, asciiPath string, err error) {
 		}
 
 		switch {
-		case strings.HasSuffix(outPath, ".gif") && gifPath == "":
-			gifPath = outPath
-		case strings.HasSuffix(outPath, ".ascii") && asciiPath == "":
-			asciiPath = outPath
+		case strings.HasSuffix(resolved, ".gif") && gifPath == "":
+			gifPath = resolved
+		case strings.HasSuffix(resolved, ".ascii") && asciiPath == "":
+			asciiPath = resolved
 		}
 	}
 

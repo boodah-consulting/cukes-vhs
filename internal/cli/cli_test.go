@@ -255,7 +255,7 @@ var _ = Describe("cukesvhs CLI", func() {
 					"--output", tmpDir,
 				}, &out, &errOut)
 
-				Expect(code).To(Equal(0))
+				Expect(code).To(Equal(1), "expected exit code 1 due to render failures in test environment")
 				output := out.String()
 				Expect(output).To(ContainSubstring("Parsing..."))
 				Expect(output).To(ContainSubstring("Generating..."))
@@ -274,8 +274,7 @@ var _ = Describe("cukesvhs CLI", func() {
 					"--output", tmpDir,
 				}, &out, &errOut)
 
-				Expect(code).To(Equal(0))
-				Expect(errOut.String()).To(BeEmpty())
+				Expect(code).To(Equal(1), "expected exit code 1 due to render failures in test environment")
 			})
 
 			It("reports 'Written: <path>' for each tape file written", func() {
@@ -312,7 +311,7 @@ var _ = Describe("cukesvhs CLI", func() {
 					"--output", tmpDir,
 				}, &out, &errOut)
 
-				Expect(code).To(Equal(0))
+				Expect(code).To(Equal(1), "expected exit code 1 due to render failures in test environment")
 				Expect(out.String()).To(MatchRegexp(`Generated \d+ tapes`))
 			})
 		})
@@ -329,7 +328,7 @@ var _ = Describe("cukesvhs CLI", func() {
 					"--output", tmpDir,
 				}, &out, &errOut)
 
-				Expect(code).To(Equal(0))
+				Expect(code).To(Equal(1), "expected exit code 1 due to render failures in test environment")
 				Expect(out.String()).To(MatchRegexp(`Generated \d+ tapes`))
 			})
 		})
@@ -346,7 +345,7 @@ var _ = Describe("cukesvhs CLI", func() {
 					"--output", tmpDir,
 				}, &out, &errOut)
 
-				Expect(code).To(Equal(0))
+				Expect(code).To(Equal(1), "expected exit code 1 due to render failures in test environment")
 				Expect(out.String()).To(MatchRegexp(`Generated \d+ tapes`))
 			})
 		})
@@ -1363,7 +1362,7 @@ var _ = Describe("cukesvhs CLI", func() {
 		Context("with empty results", func() {
 			It("outputs zero counts when no scenarios exist", func() {
 				var out bytes.Buffer
-				code := runListCount([]cukesvhs.AnalysisResult{}, false, &out)
+				code := runListCount([]cukesvhs.AnalysisResult{}, &out)
 				Expect(code).To(Equal(0))
 				Expect(out.String()).To(MatchRegexp(`Business: 0/0 translatable \| VHS-only: 0/0 translatable`))
 			})
@@ -1377,7 +1376,7 @@ var _ = Describe("cukesvhs CLI", func() {
 					{ScenarioName: "Scenario C", Feature: "Feature B", Source: cukesvhs.SourceVHSOnly, Translatable: true},
 				}
 				var out bytes.Buffer
-				code := runListCount(results, false, &out)
+				code := runListCount(results, &out)
 				Expect(code).To(Equal(0))
 				Expect(out.String()).To(ContainSubstring("Business: 1/2 translatable"))
 				Expect(out.String()).To(ContainSubstring("VHS-only: 1/1 translatable"))
@@ -1591,7 +1590,7 @@ var _ = Describe("runListJSON encode error", func() {
 		}
 
 		var errOut bytes.Buffer
-		code := runListJSON(results, false, failWriter{}, &errOut)
+		code := runListJSON(results, failWriter{}, &errOut)
 
 		Expect(code).To(Equal(1))
 		Expect(errOut.String()).To(ContainSubstring("Error encoding JSON"))
