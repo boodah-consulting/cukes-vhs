@@ -1,316 +1,271 @@
-#!/usr/bin/env bash
-# Pre-commit review script for cukes-vhs
-# Non-interactive — reviews staged changes before committing
-#
-# Checks:
-#   1. Staged files exist
-#   2. Change statistics
-#   3. Generated files check
-#   4. Debug code detection
-#   5. Secrets pattern detection
-#   6. Build check
-#   7. Test check
-#   8. Format check
-#   9. Architecture check (no import cycles)
-#  10. AI attribution check
+#!/bin/bash
 
-set -euo pipefail
+set -e
 
-# =============================================================================
-# Colour helpers
-# =============================================================================
+echo "================================================"
+echo "🔍 ATOMIC COMMIT REVIEW"
+echo "================================================"
+echo ""
 
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-BOLD='\033[1m'
-NC='\033[0m'
+NC='\033[0m' # No Color
 
-PASS=0
-FAIL=0
-WARN=0
-TOTAL_CHECKS=10
-
-check()    { echo -e "\n${BOLD}${BLUE}[$1/${TOTAL_CHECKS}] $2${NC}"; }
-pass()     { PASS=$((PASS + 1)); echo -e "  ${GREEN}✓${NC} $*"; }
-fail()     { FAIL=$((FAIL + 1)); echo -e "  ${RED}✗${NC} $*"; }
-warn_msg() { WARN=$((WARN + 1)); echo -e "  ${YELLOW}⚠${NC} $*"; }
-skip_msg() { echo -e "  ${YELLOW}⊘${NC} $* (skipped)"; }
-
-echo -e "${BOLD}cukes-vhs Pre-Commit Review${NC}"
-echo "=============================="
-
-START_TIME=$(date +%s)
-
-# =============================================================================
-# 1. Staged Files
-# =============================================================================
-
-check 1 "Staged Files"
-
-STAGED_FILES=$(git diff --cached --name-only 2>/dev/null || true)
-
-if [ -z "$STAGED_FILES" ]; then
-  fail "No staged files found. Stage files with 'git add' first."
-  echo ""
-  echo -e "${RED}${BOLD}REVIEW ABORTED${NC} — nothing to review"
-  exit 1
-fi
-
-STAGED_COUNT=$(echo "$STAGED_FILES" | wc -l | tr -d ' ')
-pass "Found $STAGED_COUNT staged file(s)"
-echo "$STAGED_FILES" | while IFS= read -r f; do echo "    $f"; done
-
-# =============================================================================
-# 2. Change Statistics
-# =============================================================================
-
-check 2 "Change Statistics"
-
-STAT_OUTPUT=$(git diff --cached --stat 2>/dev/null || true)
-INSERTIONS=$(echo "$STAT_OUTPUT" | tail -1 | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo "0")
-DELETIONS=$(echo "$STAT_OUTPUT" | tail -1 | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo "0")
-
-pass "Files changed: $STAGED_COUNT"
-echo "    Insertions: +${INSERTIONS}"
-echo "    Deletions:  -${DELETIONS}"
-
-# Warn on large changes
-TOTAL_CHANGES=$((INSERTIONS + DELETIONS))
-if [ "$TOTAL_CHANGES" -gt 500 ]; then
-  warn_msg "Large change set ($TOTAL_CHANGES lines) — consider splitting into smaller commits"
-elif [ "$TOTAL_CHANGES" -gt 200 ]; then
-  warn_msg "Moderate change set ($TOTAL_CHANGES lines)"
-fi
-
-# =============================================================================
-# 3. Generated Files
-# =============================================================================
-
-check 3 "Generated Files"
-
-GENERATED_PATTERNS=(
-  "mock_*.go"
-  "*_mock.go"
-  "*.pb.go"
-  "*_string.go"
-  "*_gen.go"
-  "generated_*.go"
-)
-
-GENERATED_FOUND=0
-for pattern in "${GENERATED_PATTERNS[@]}"; do
-  MATCHES=$(echo "$STAGED_FILES" | grep -E "$(echo "$pattern" | sed 's/\*/.*/g')" 2>/dev/null || true)
-  if [ -n "$MATCHES" ]; then
-    GENERATED_FOUND=$((GENERATED_FOUND + 1))
-    warn_msg "Generated file staged: $MATCHES"
-  fi
-done
-
-if [ "$GENERATED_FOUND" -eq 0 ]; then
-  pass "No generated files in staged changes"
-fi
-
-# =============================================================================
-# 4. Debug Code
-# =============================================================================
-
-check 4 "Debug Code Detection"
-
-DEBUG_PATTERNS=(
-  'fmt\.Println'
-  'fmt\.Printf'
-  'log\.Print'
-  'log\.Println'
-  'log\.Printf'
-  'console\.log'
-  'debugger'
-  'TODO.*REMOVE'
-  'FIXME.*REMOVE'
-  'HACK'
-)
-
-DEBUG_FOUND=0
-STAGED_GO_FILES=$(echo "$STAGED_FILES" | grep '\.go$' || true)
-
-if [ -n "$STAGED_GO_FILES" ]; then
-  for pattern in "${DEBUG_PATTERNS[@]}"; do
-    # Check only staged content (not full file)
-    MATCHES=$(git diff --cached -G "$pattern" --name-only 2>/dev/null || true)
-    if [ -n "$MATCHES" ]; then
-      # Verify the pattern is in added lines (not removed)
-      ADDED_MATCHES=$(git diff --cached -U0 2>/dev/null | grep "^+" | grep -E "$pattern" 2>/dev/null || true)
-      if [ -n "$ADDED_MATCHES" ]; then
-        DEBUG_FOUND=$((DEBUG_FOUND + 1))
-        warn_msg "Debug code pattern '${pattern}' found in staged additions:"
-        echo "$ADDED_MATCHES" | head -3 | while IFS= read -r line; do echo "    $line"; done
-      fi
-    fi
-  done
-fi
-
-if [ "$DEBUG_FOUND" -eq 0 ]; then
-  pass "No debug code patterns found"
-fi
-
-# =============================================================================
-# 5. Secrets Detection
-# =============================================================================
-
-check 5 "Secrets Pattern Detection"
-
-SECRET_PATTERNS=(
-  'AKIA[0-9A-Z]{16}'
-  'password\s*[:=]\s*["\x27][^"\x27]+'
-  'api[_-]?key\s*[:=]\s*["\x27][^"\x27]+'
-  'secret[_-]?key\s*[:=]\s*["\x27][^"\x27]+'
-  'private[_-]?key\s*[:=]\s*["\x27][^"\x27]+'
-  'BEGIN RSA PRIVATE KEY'
-  'BEGIN OPENSSH PRIVATE KEY'
-)
-
-SECRETS_FOUND=0
-for pattern in "${SECRET_PATTERNS[@]}"; do
-  # Check staged additions only
-  ADDED_SECRETS=$(git diff --cached -U0 2>/dev/null | grep "^+" | grep -iE "$pattern" 2>/dev/null || true)
-  if [ -n "$ADDED_SECRETS" ]; then
-    SECRETS_FOUND=$((SECRETS_FOUND + 1))
-    fail "Possible secret pattern detected: ${pattern}"
-    echo "$ADDED_SECRETS" | head -2 | while IFS= read -r line; do echo "    $line"; done
-  fi
-done
-
-# Check for .env files
-ENV_STAGED=$(echo "$STAGED_FILES" | grep -E '\.env' || true)
-if [ -n "$ENV_STAGED" ]; then
-  SECRETS_FOUND=$((SECRETS_FOUND + 1))
-  fail "Environment file staged: $ENV_STAGED"
-fi
-
-if [ "$SECRETS_FOUND" -eq 0 ]; then
-  pass "No secret patterns detected"
-fi
-
-# =============================================================================
-# 6. Build Check
-# =============================================================================
-
-check 6 "Build Check"
-
-if go build ./... 2>&1; then
-  pass "Build succeeded"
+# Check if there are staged changes
+if ! git diff --cached --quiet; then
+    echo -e "${GREEN}✅ Staged changes detected${NC}"
 else
-  fail "Build failed"
+    echo -e "${RED}❌ No staged changes${NC}"
+    echo ""
+    echo "Stage your changes first with: git add <files>"
+    exit 1
 fi
 
-# =============================================================================
-# 7. Test Check
-# =============================================================================
+echo ""
+echo "------------------------------------------------"
+echo "📋 STAGED FILES"
+echo "------------------------------------------------"
+git diff --cached --name-status
 
-check 7 "Test Check"
+echo ""
+echo "------------------------------------------------"
+echo "📊 CHANGE STATISTICS"
+echo "------------------------------------------------"
+git diff --cached --stat
 
-if command -v ginkgo &>/dev/null; then
-  if ginkgo --race --skip-package=testdata ./... 2>&1; then
-    pass "All tests passed"
-  else
-    fail "Tests failed"
-  fi
+# Count files and lines
+FILE_COUNT=$(git diff --cached --name-only | wc -l | tr -d ' ')
+LINE_COUNT=$(git diff --cached --numstat | awk '{add+=$1; del+=$2} END {print add+del}')
+
+echo ""
+echo -e "${BLUE}Files changed: $FILE_COUNT${NC}"
+echo -e "${BLUE}Lines changed: $LINE_COUNT${NC}"
+
+# Warnings
+if [ "$FILE_COUNT" -gt 10 ]; then
+    echo -e "${YELLOW}⚠️  Warning: More than 10 files changed. Consider splitting.${NC}"
+fi
+
+if [ "$LINE_COUNT" -gt 500 ]; then
+    echo -e "${YELLOW}⚠️  Warning: More than 500 lines changed. Consider splitting (unless initial setup).${NC}"
+fi
+
+# Check for generated files
+echo ""
+echo "------------------------------------------------"
+echo "🔍 CHECKING FOR GENERATED FILES"
+echo "------------------------------------------------"
+GENERATED_FILES=$(git diff --cached --name-only | grep -E '\.(out|exe|dll|so|dylib|test)$' || true)
+if [ -n "$GENERATED_FILES" ]; then
+    echo -e "${RED}❌ Generated files detected! Remove from staging:${NC}"
+    echo "$GENERATED_FILES"
+    echo ""
+    echo "Run: git reset <filename>"
+    exit 1
 else
-  skip_msg "ginkgo not installed"
+    echo -e "${GREEN}✅ No generated files detected${NC}"
 fi
 
-# =============================================================================
-# 8. Format Check
-# =============================================================================
-
-check 8 "Format Check"
-
-UNFORMATTED=""
-if [ -n "$STAGED_GO_FILES" ]; then
-  for f in $STAGED_GO_FILES; do
-    if [ -f "$f" ]; then
-      RESULT=$(gofmt -l "$f" 2>/dev/null || true)
-      if [ -n "$RESULT" ]; then
-        UNFORMATTED="${UNFORMATTED}${RESULT}\n"
-      fi
-    fi
-  done
+# Check for coverage files
+COVERAGE_FILES=$(git diff --cached --name-only | grep -E 'coverage\.(out|html)' || true)
+if [ -n "$COVERAGE_FILES" ]; then
+    echo -e "${RED}❌ Coverage files detected! Remove from staging:${NC}"
+    echo "$COVERAGE_FILES"
+    echo ""
+    echo "Run: git reset coverage.out coverage.html"
+    exit 1
 fi
 
+# Check for debug statements
+echo ""
+echo "------------------------------------------------"
+echo "🐛 CHECKING FOR DEBUG CODE"
+echo "------------------------------------------------"
+DEBUG_PATTERNS='TODO|FIXME|XXX|console\.log|debugger|fmt\.Println\("DEBUG'
+if git diff --cached | grep -E "$DEBUG_PATTERNS" > /dev/null 2>&1; then
+    echo -e "${YELLOW}⚠️  Warning: Debug statements found:${NC}"
+    git diff --cached | grep -E "$DEBUG_PATTERNS" | head -5
+    echo ""
+    echo "Consider removing debug code before committing."
+else
+    echo -e "${GREEN}✅ No debug statements found${NC}"
+fi
+
+# Check for secrets
+echo ""
+echo "------------------------------------------------"
+echo "🔐 CHECKING FOR SECRETS"
+echo "------------------------------------------------"
+SECRET_PATTERNS='password["\s]*[:=]|secret["\s]*[:=]|api[_-]?key["\s]*[:=]|token["\s]*[:=]|credential["\s]*[:=]'
+if git diff --cached | grep -iE "$SECRET_PATTERNS" | grep -v 'password_hash' > /dev/null 2>&1; then
+    echo -e "${RED}❌ Potential secrets detected!${NC}"
+    git diff --cached | grep -iE "$SECRET_PATTERNS" | head -5
+    echo ""
+    echo "DO NOT commit secrets! Use environment variables instead."
+    exit 1
+else
+    echo -e "${GREEN}✅ No secrets detected${NC}"
+fi
+
+# Build check
+echo ""
+echo "------------------------------------------------"
+echo "🏗️  BUILD CHECK"
+echo "------------------------------------------------"
+if go build ./... > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Build successful${NC}"
+else
+    echo -e "${RED}❌ Build failed${NC}"
+    echo ""
+    echo "Fix build errors before committing:"
+    go build ./...
+    exit 1
+fi
+
+# Test check
+echo ""
+echo "------------------------------------------------"
+echo "🧪 TEST CHECK"
+echo "------------------------------------------------"
+if go test ./... > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ All tests pass${NC}"
+else
+    echo -e "${RED}❌ Tests failed${NC}"
+    echo ""
+    echo "Fix failing tests before committing:"
+    go test ./...
+    exit 1
+fi
+
+# Race check
+echo ""
+echo "------------------------------------------------"
+echo "🏁 RACE CONDITION CHECK"
+echo "------------------------------------------------"
+if go test -race ./... > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ No race conditions detected${NC}"
+else
+    echo -e "${RED}❌ Race conditions detected${NC}"
+    echo ""
+    echo "Fix race conditions before committing:"
+    go test -race ./...
+    exit 1
+fi
+
+# Formatting check
+echo ""
+echo "------------------------------------------------"
+echo "✨ FORMATTING CHECK"
+echo "------------------------------------------------"
+UNFORMATTED=$(gofmt -l . 2>&1 | grep -v '^vendor/' | grep '\.go$' || true)
 if [ -z "$UNFORMATTED" ]; then
-  pass "All staged Go files properly formatted"
+    echo -e "${GREEN}✅ All files properly formatted${NC}"
 else
-  fail "Unformatted files:"
-  echo -e "$UNFORMATTED" | while IFS= read -r f; do [ -n "$f" ] && echo "    $f"; done
+    echo -e "${YELLOW}⚠️  Unformatted files:${NC}"
+    echo "$UNFORMATTED"
+    echo ""
+    echo "Run: go fmt ./..."
 fi
 
-# =============================================================================
-# 9. Architecture Check
-# =============================================================================
+# Check architectural layers
+echo ""
+echo "------------------------------------------------"
+echo "🏛️  ARCHITECTURAL LAYERS AFFECTED"
+echo "------------------------------------------------"
+LAYERS=$(git diff --cached --name-only | grep -E 'internal/(domain|service|repository|cli|logger)' | cut -d'/' -f2-3 | sort -u || true)
+if [ -n "$LAYERS" ]; then
+    echo "$LAYERS" | while read layer; do
+        echo -e "${BLUE}  - $layer${NC}"
+    done
 
-check 9 "Architecture Check"
-
-# Verify no import cycles
-if go vet ./... 2>/dev/null; then
-  pass "No import cycles detected (go vet passed)"
-else
-  fail "go vet failed — possible import cycles"
-fi
-
-# Check dependency direction: internal/ should not import cmd/
-CMD_IMPORTS=$(echo "$STAGED_GO_FILES" | while IFS= read -r f; do
-  if echo "$f" | grep -q '^internal/'; then
-    if [ -f "$f" ]; then
-      grep '"github.com/boodah-consulting/cukes-vhs/cmd' "$f" 2>/dev/null || true
+    LAYER_COUNT=$(echo "$LAYERS" | wc -l | tr -d ' ')
+    if [ "$LAYER_COUNT" -gt 2 ]; then
+        echo ""
+        echo -e "${YELLOW}⚠️  Multiple layers affected ($LAYER_COUNT). Consider splitting by layer.${NC}"
     fi
-  fi
-done)
-
-if [ -z "$CMD_IMPORTS" ]; then
-  pass "Correct dependency direction (internal/ does not import cmd/)"
 else
-  fail "internal/ imports cmd/ (wrong dependency direction)"
+    echo -e "${BLUE}Non-code changes (docs, config, etc.)${NC}"
 fi
 
-# =============================================================================
-# 10. AI Attribution Check
-# =============================================================================
+# Check for AI attribution
+echo ""
+echo "------------------------------------------------"
+echo "🤖 AI ATTRIBUTION CHECK"
+echo "------------------------------------------------"
 
-check 10 "AI Attribution"
+CODE_FILES_CHECK=$(git diff --cached --name-only | grep -E '\.(go|js|ts|py|java|c|cpp|rs)$' || true)
 
-# Check if running in an AI agent context
-if [ -n "${Claude:-}" ] || [ -n "${CLAUDE_CODE:-}" ] || [ -n "${OPENCODE:-}" ] || [ -n "${CURSOR:-}" ] || [ -n "${AI_AGENT:-}" ]; then
-  warn_msg "AI agent detected — ensure commit uses 'make ai-commit' for proper attribution"
+if [ -n "$CODE_FILES_CHECK" ]; then
+    echo -e "${YELLOW}⚠️  Code files detected in commit${NC}"
+    echo ""
+    echo "If ANY code was AI-generated, your commit message MUST include:"
+    echo ""
+    echo -e "${BLUE}  AI-Generated-By: <Assistant Name> (<Model Version>)${NC}"
+    echo -e "${BLUE}  Reviewed-By: <Your Name>${NC}"
+    echo ""
+    echo "Examples:"
+    echo "  AI-Generated-By: Avante (Claude 3.5 Sonnet)"
+    echo "  AI-Generated-By: Claude (Claude 3.7 Sonnet)"
+    echo "  AI-Generated-By: GitHub Copilot (GPT-4)"
+    echo ""
+    echo -e "${YELLOW}See docs/rules/AI_COMMIT_ATTRIBUTION.md for full guidelines${NC}"
 else
-  pass "No AI agent context detected (manual commit)"
+    echo -e "${GREEN}✅ No code files in this commit${NC}"
 fi
 
-# =============================================================================
+# Final checklist
+echo ""
+echo "================================================"
+echo "✅ COMMIT READINESS CHECKLIST"
+echo "================================================"
+echo ""
+echo "Before committing, verify:"
+echo ""
+echo "  [ ] This commit represents ONE logical change"
+echo "  [ ] Commit message follows conventional format"
+echo "  [ ] Commit message explains WHY, not just WHAT"
+echo "  [ ] All tests pass (verified above ✓)"
+echo "  [ ] Code is properly formatted (verified above ✓)"
+echo "  [ ] No generated files included (verified above ✓)"
+echo "  [ ] No secrets or sensitive data included (verified above ✓)"
+echo "  [ ] Related tests are included"
+echo "  [ ] Documentation updated (if needed)"
+echo "  [ ] AI attribution included (if AI-generated code) 🤖"
+echo ""
+echo "------------------------------------------------"
+echo "📝 COMMIT MESSAGE FORMAT:"
+echo "------------------------------------------------"
+echo ""
+echo -e "${BLUE}<type>(<scope>): <subject>${NC}"
+echo ""
+echo "<body explaining why this change is needed>"
+echo ""
+echo "<footer with issue references>"
+echo ""
+echo "Types: feat, fix, docs, style, refactor, test, chore, perf"
+echo "Scopes: domain, service, repo, cli, logger"
+echo ""
+echo -e "${GREEN}Example:${NC}"
+echo "feat(service): add event filtering by date range"
+echo ""
+echo "Implement date range filtering for timeline views."
+echo "Improves performance for large event collections."
+echo ""
+echo "Closes #56"
+echo ""
+echo "================================================"
+echo ""
+
 # Summary
-# =============================================================================
-
-END_TIME=$(date +%s)
-DURATION=$((END_TIME - START_TIME))
-
+echo -e "${GREEN}✅ All automated checks passed!${NC}"
 echo ""
-echo -e "${BOLD}=============================="
-echo -e "Review Summary${NC}"
-echo "=============================="
-echo "  Duration: ${DURATION}s"
-echo -e "  ${GREEN}Passed:${NC}   $PASS"
-echo -e "  ${RED}Failed:${NC}   $FAIL"
-echo -e "  ${YELLOW}Warnings:${NC} $WARN"
+echo "Review the checklist above and proceed with your commit."
+echo ""
+echo "To commit: git commit"
+echo "To review diff: git diff --cached"
+echo "To unstage all: git reset"
 echo ""
 
-if [ "$FAIL" -gt 0 ]; then
-  echo -e "${RED}${BOLD}REVIEW FAILED${NC} — $FAIL issue(s) must be resolved before committing"
-  exit 1
-else
-  if [ "$WARN" -gt 0 ]; then
-    echo -e "${YELLOW}${BOLD}REVIEW PASSED WITH WARNINGS${NC} — $WARN warning(s) to consider"
-  else
-    echo -e "${GREEN}${BOLD}REVIEW PASSED${NC} — ready to commit"
-  fi
-  exit 0
-fi

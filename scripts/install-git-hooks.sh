@@ -1,129 +1,74 @@
-#!/usr/bin/env bash
-# Install git hooks for cukes-vhs
-# Non-interactive — auto-installs without prompts
+#!/bin/bash
+
+# Install Git Hooks for AI Commit Attribution
 #
-# This script:
-#   1. Verifies we are in a git repository
-#   2. Configures git to use the .git-hooks directory
-#   3. Ensures all hook files are executable
-#   4. Verifies installation
+# Configures git to use .git-hooks/ as the hooks directory.
+# This means hooks are tracked in the repo and always in sync.
 
-set -euo pipefail
+set -e
 
-# =============================================================================
-# Colour helpers
-# =============================================================================
+echo "================================================"
+echo "Installing Git Hooks"
+echo "================================================"
+echo ""
 
-RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-BOLD='\033[1m'
 NC='\033[0m'
 
-info()    { echo -e "${BLUE}ℹ${NC} $*"; }
-success() { echo -e "${GREEN}✓${NC} $*"; }
-warn()    { echo -e "${YELLOW}⚠${NC} $*"; }
-error()   { echo -e "${RED}✗${NC} $*" >&2; }
-
-echo -e "${BOLD}cukes-vhs Git Hooks Installer${NC}"
-echo "================================"
-
-# =============================================================================
-# Pre-flight checks
-# =============================================================================
-
-# Verify we are in a git repository
-if ! git rev-parse --git-dir >/dev/null 2>&1; then
-  error "Not a git repository. Run this from the project root."
-  exit 1
+if [ ! -e ".git" ]; then
+    echo "Error: Not in a git repository"
+    exit 1
 fi
 
-# Get the project root (where .git-hooks should be)
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
-HOOKS_DIR="${PROJECT_ROOT}/.git-hooks"
-
-# Verify hooks directory exists
-if [ ! -d "$HOOKS_DIR" ]; then
-  error "Hooks directory not found: $HOOKS_DIR"
-  error "Expected .git-hooks/ directory at project root"
-  exit 1
+if [ ! -d ".git-hooks" ]; then
+    echo "Error: .git-hooks/ directory not found"
+    exit 1
 fi
 
-info "Project root: $PROJECT_ROOT"
-info "Hooks source: $HOOKS_DIR"
-
-# =============================================================================
-# Configure git hooks path
-# =============================================================================
-
-CURRENT_HOOKS_PATH=$(git config --get core.hooksPath 2>/dev/null || true)
-
-if [ "$CURRENT_HOOKS_PATH" = ".git-hooks" ]; then
-  info "Git hooks path already configured to .git-hooks"
-else
-  git config core.hooksPath .git-hooks
-  success "Git hooks path set to .git-hooks"
-fi
-
-# =============================================================================
-# Set executable permissions
-# =============================================================================
-
-HOOK_COUNT=0
-for hook_file in "$HOOKS_DIR"/*; do
-  if [ -f "$hook_file" ]; then
-    chmod +x "$hook_file"
-    HOOK_NAME=$(basename "$hook_file")
-    success "Made executable: $HOOK_NAME"
-    HOOK_COUNT=$((HOOK_COUNT + 1))
-  fi
-done
-
-if [ "$HOOK_COUNT" -eq 0 ]; then
-  warn "No hook files found in $HOOKS_DIR"
-  exit 0
-fi
-
-# =============================================================================
-# Verify installation
-# =============================================================================
-
+git config core.hooksPath .git-hooks
+echo -e "${GREEN}Set core.hooksPath to .git-hooks/${NC}"
 echo ""
-info "Verifying installation..."
 
-VERIFIED=0
-for hook_file in "$HOOKS_DIR"/*; do
-  if [ -f "$hook_file" ]; then
-    HOOK_NAME=$(basename "$hook_file")
-    if [ -x "$hook_file" ]; then
-      success "Verified: $HOOK_NAME (executable)"
-      VERIFIED=$((VERIFIED + 1))
+REQUIRED_HOOKS=("pre-commit" "commit-msg" "prepare-commit-msg")
+for hook in "${REQUIRED_HOOKS[@]}"; do
+    hook_path=".git-hooks/$hook"
+    if [ -f "$hook_path" ]; then
+        chmod +x "$hook_path"
+        echo -e "  ${GREEN}$hook${NC}"
     else
-      error "Failed: $HOOK_NAME (not executable)"
+        echo -e "  ${YELLOW}$hook (missing from .git-hooks/)${NC}"
     fi
-  fi
 done
 
-# =============================================================================
-# Summary
-# =============================================================================
+if [ -f "package.json" ] && command -v npm &> /dev/null; then
+    echo ""
+    echo "Installing Node.js dependencies for commitlint..."
+    if npm ci 2>/dev/null || npm install 2>/dev/null; then
+        echo -e "${GREEN}Installed Node.js dependencies${NC}"
+    else
+        echo -e "${YELLOW}Could not install Node.js dependencies${NC}"
+    fi
+fi
+
+if git config commit.template .gitmessage 2>/dev/null; then
+    echo -e "${GREEN}Configured commit template${NC}"
+fi
 
 echo ""
-echo -e "${BOLD}================================${NC}"
-
-if [ "$VERIFIED" -eq "$HOOK_COUNT" ]; then
-  success "All $HOOK_COUNT hook(s) installed successfully"
-  echo ""
-  info "Installed hooks:"
-  for hook_file in "$HOOKS_DIR"/*; do
-    if [ -f "$hook_file" ]; then
-      echo "  - $(basename "$hook_file")"
-    fi
-  done
-  echo ""
-  info "Hooks will run automatically on git operations"
-else
-  error "Some hooks failed to install"
-  exit 1
-fi
+echo "================================================"
+echo "Installation Complete"
+echo "================================================"
+echo ""
+echo "Git now uses .git-hooks/ directly (tracked in repo)."
+echo "Hooks stay in sync automatically - no manual copying needed."
+echo ""
+echo "Installed hooks:"
+echo "  - pre-commit: Code quality and TDD enforcement"
+echo "  - prepare-commit-msg: Adds AI attribution reminder"
+echo "  - commit-msg: Validates AI attribution format"
+echo ""
+echo -e "${BLUE}To bypass hooks (emergencies only):${NC}"
+echo "  git commit --no-verify"
+echo ""
