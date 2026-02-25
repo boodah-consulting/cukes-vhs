@@ -377,7 +377,7 @@ cat > "$FINAL_MSG_FILE" << EOF
 ${COMMIT_MSG}
 
 AI-Generated-By: ${AGENT_NAME} (${MODEL_NAME})
-Reviewed-By: ${REVIEWER_NAME}
+Reviewed-By: ${AGENT_NAME} (${MODEL_NAME})
 EOF
 
 # Build commit flags

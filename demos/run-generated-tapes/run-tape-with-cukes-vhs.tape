@@ -13,4 +13,5 @@ Type@100ms "./cukes-vhs run --scenario 'list all translatable scenarios' --outpu
 Sleep 2s
 Enter
 
+Sleep 3s
 Ctrl+C

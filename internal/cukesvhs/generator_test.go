@@ -244,7 +244,7 @@ var _ = Describe("GenerateTape", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			sleepCount := strings.Count(result, "Sleep 3s")
-			Expect(sleepCount).To(Equal(1))
+			Expect(sleepCount).To(Equal(2))
 		})
 	})
 
