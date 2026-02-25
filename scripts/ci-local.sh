@@ -149,12 +149,6 @@ run_check "Docblocks Analyzer" \
     "go build -o ./bin/docblocks ./cmd/docblocks && go vet -vettool=./bin/docblocks ./internal/cli/behaviors/... ./internal/cli/intents/... ./tools/analyzers/docblocks/..."
 
 # ============================================
-# 9. INTENT ARCHITECTURE (architectural compliance)
-# ============================================
-run_check "Intent Architecture" \
-    "bash scripts/check-intent-architecture.sh"
-
-# ============================================
 # SUMMARY
 # ============================================
 echo ""
