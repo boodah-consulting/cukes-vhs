@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/boodah-consulting/cukesvhs/internal/cukesvhs"
+	"github.com/boodah-consulting/cukes-vhs/internal/cukesvhs"
 )
 
 // runOptions holds parsed flags for the run subcommand.

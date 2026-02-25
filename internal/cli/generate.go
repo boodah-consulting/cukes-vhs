@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/boodah-consulting/cukesvhs/internal/cukesvhs"
+	"github.com/boodah-consulting/cukes-vhs/internal/cukesvhs"
 )
 
 // runGenerate implements the `generate` subcommand.
