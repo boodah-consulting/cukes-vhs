@@ -19,6 +19,7 @@ func runList(args []string, out io.Writer, errOut io.Writer) int {
 	asJSON := fs.Bool("json", false, "Output as JSON")
 	showCount := fs.Bool("count", false, "Show counts broken down by source")
 	showSteps := fs.Bool("steps", false, "Show translatable step patterns")
+	_ = fs.Bool("all", false, "List all scenarios (default behaviour)")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintf(errOut, "Error parsing flags: %v\n", err)
