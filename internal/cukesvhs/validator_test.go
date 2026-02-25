@@ -253,6 +253,7 @@ var _ = Describe("Validator", func() {
 
 		Context("when the golden baseline file is unreadable after being found", func() {
 			It("returns an error mentioning reading golden ASCII", func() {
+				skipIfWindows("os.Chmod does not restrict access on windows")
 				asciiPath := filepath.Join(outputDir, "output.ascii")
 				writeASCIIFile(asciiPath, "content\n")
 
@@ -271,6 +272,7 @@ var _ = Describe("Validator", func() {
 
 		Context("when goldenDir is not writable (placeholder dir creation fails)", func() {
 			It("returns an error mentioning creating placeholder GIF", func() {
+				skipIfWindows("os.Chmod does not restrict access on windows")
 				readOnlyGoldenDir := GinkgoT().TempDir()
 				Expect(os.Chmod(readOnlyGoldenDir, 0o555)).To(Succeed())
 				defer os.Chmod(readOnlyGoldenDir, 0o755) //nolint:errcheck
@@ -286,6 +288,7 @@ var _ = Describe("Validator", func() {
 
 		Context("when placeholder dir exists but is not writable (GIF write fails)", func() {
 			It("returns an error mentioning creating placeholder GIF", func() {
+				skipIfWindows("os.Chmod does not restrict access on windows")
 				customGoldenDir := GinkgoT().TempDir()
 
 				placeholderDir := filepath.Join(customGoldenDir, ".placeholders")
@@ -515,6 +518,7 @@ var _ = Describe("Validator", func() {
 
 		Context("when an .ascii file is unreadable causing ValidateScenario to error", func() {
 			It("records a FAIL result with the error message rather than stopping", func() {
+				skipIfWindows("os.Chmod does not restrict access on windows")
 				asciiPath := filepath.Join(outputDir, "readable.ascii")
 				writeASCIIFile(asciiPath, "content\n")
 
