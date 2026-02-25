@@ -5,6 +5,83 @@ This document provides AI agents with the necessary context, conventions, and pa
 ## Overview
 **cukes-vhs** is a Go-based CLI tool and library that converts Gherkin (Cucumber) feature files into VHS tape files for automated terminal recordings using [charmbracelet/vhs](https://github.com/charmbracelet/vhs).
 
+### ALWAYS
+- Follow the architecture and code style guidelines
+- Write tests FIRST (TDD)
+- Capture knowledge in memory (MCP) and obsidian (MCP) when DISCOVERING
+  or CHANGING something
+- Use `make ai-commit` for commits (not `git commit`)
+- Ask if confidence is ASSUMED or UNKNOWN
+- NEVER skip checks or tests
+  - Unless explicitly approved by user, NEVER skip `make session-start` or any
+    tests
+- Refuse if about to do something that violates these rules
+- **NEVER declare a task "done" or "complete" - only the USER decides when work is finished**
+- **NEVER decide to skip, postpone, or deprioritize work - only the USER makes these decisions**
+
+### Token Efficiency
+- Be concise and precise
+- No unnecessary words
+- Specific, not vague
+- Structured output
+
+### Pre-Action Framework
+
+Before ANY action, complete this checklist:
+
+```
+1. STOP  - What am I being asked to do?
+2. THINK - What do I KNOW vs ASSUME vs UNKNOWN?
+3. INVESTIGATE - Use tools, skills, git history to find out
+4. CHOOSE - Which skills/tools are appropriate?
+5. CONFIDENCE - VERIFIED / SUPPORTED / ASSUMED / UNKNOWN?
+6. ACT or ASK - If ASSUMED/UNKNOWN: ask user first
+```
+
+## Memory Capture (MANDATORY)
+
+Capture knowledge when you **DISCOVER** or **CHANGE** something:
+
+| Trigger | What to Capture | Example |
+|---------|-----------------|---------|
+| DISCOVERY | Validation rules, patterns, gotchas | "Event text requires 10+ chars" |
+| CHANGE | New rules, modified behaviour | "Changed min from 0 to 10 chars" |
+
+Use `mcp_memory_create_entities` or `mcp_memory_add_observations`.
+
+## Commands
+
+| Task | Command |
+|------|---------|
+| All tests | `make test` |
+| Single test | `make individual-test TEST="description"` |
+| BDD tests | `make bdd` |
+| Build | `make build` |
+| Lint | `make vet && make staticcheck` |
+| Compliance | `make check-compliance` |
+| Commit | `make ai-commit FILE=/tmp/commit.txt` |
+
+## Code Style
+
+### Imports (grouped, alphabetical)
+```go
+import (
+    "context"                                          // stdlib
+    tea "github.com/charmbracelet/bubbletea"          // external
+    "github.com/boodah-consulting/cukes-vhs/internal/cukesvhs" // internal
+)
+```
+
+### Naming
+- Files: `snake_case.go` | Packages: `lowercase`
+- Types/Public: `PascalCase` | Private: `camelCase`
+
+### Forbidden
+- Comments inside function bodies
+- `TODO`, `FIXME`, `HACK` markers
+- Hardcoded colors (use `theme.Primary()`)
+- Direct `huh.*` (use `forms/` wrappers)
+
 ## Directory Structure
 - `cmd/cukes-vhs/` - CLI entry point and main package.
 - `internal/cukesvhs/` - Core library including the parser, generator, renderer, validator, and templates.
