@@ -12,5 +12,5 @@ Show
 Type@100ms "./cukes-vhs generate --feature 'List available scenarios' --output /tmp/tapes/"
 Sleep 2s
 Enter
-Sleep 3s
+
 Ctrl+C
