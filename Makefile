@@ -1,4 +1,4 @@
-.PHONY: test test-race coverage test-suite individual-test review-commit pre-commit build man fmt vet check-compliance check-docblocks check-patterns check-patterns-quiet check-patterns-strict golangci-lint install-git-hooks check-ai-attribution audit-ai-commits list-ai-commits ai-commit ci-local ci-install-tools gosec session-start session-end session-reset check-session verify-hooks tdd-check tdd-red tdd-green tdd-refactor tdd-document pre-task what-to-use generate-diagrams generate-state-matrix generate-docs generate-mocks check-mocks-updated diagrams fix-docs fix-all-docs validate-documentation create-doc-go
+.PHONY: test test-race coverage test-suite individual-test review-commit pre-commit build fmt vet check-compliance check-docblocks check-patterns check-patterns-quiet check-patterns-strict golangci-lint install-git-hooks check-ai-attribution audit-ai-commits list-ai-commits ai-commit ci-local ci-install-tools gosec session-start session-end session-reset check-session verify-hooks tdd-check tdd-red tdd-green tdd-refactor tdd-document pre-task what-to-use generate-diagrams generate-state-matrix generate-docs generate-mocks check-mocks-updated diagrams fix-docs fix-all-docs validate-documentation create-doc-go
 
 # Run all tests in verbose mode (race detection in CI only)
 # Note: features/*.feature files are EXAMPLE INPUTS for cukes-vhs to process,
@@ -35,13 +35,8 @@ clean-coverage:
 # Build the application
 build:
 	@echo "Building cukes-vhs..."
-	@VERSION=$$(cat VERSION) && go build -ldflags "-s -w -X main.version=$$VERSION" -o cukes-vhs ./cmd/cukes-vhs
+	@go build -o cukes-vhs ./cmd/cukes-vhs
 
-# Generate man pages for cukes-vhs commands
-man:
-	@echo "Generating man pages..."
-	@go run ./cmd/gen-docs
-	@echo "✅ Man pages generated in docs/man/"
 # Format code
 fmt:
 	@echo "Formatting code..."
@@ -708,8 +703,7 @@ help:
 	@echo "🏗️  Build:"
 	@echo "  make build             - Build the application"
 	@echo ""
-@echo "📊 Documentation:"
-	@echo "  make man                   - Generate man pages for CLI commands"
+	@echo "📊 Documentation:"
 	@echo "  make generate-diagrams     - Generate workflow diagrams (Mermaid)"
 	@echo "  make generate-state-matrix - Generate state matrix documentation"
 	@echo "  make generate-docs         - Generate all documentation (diagrams + state matrix)"
