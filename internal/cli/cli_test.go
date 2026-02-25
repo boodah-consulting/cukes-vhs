@@ -1634,3 +1634,26 @@ var _ = Describe("renderAndValidate error path", func() {
 		Expect(errOut.String()).To(ContainSubstring("Error rendering"))
 	})
 })
+
+var _ = Describe("renderAndValidate with failed render results", func() {
+	It("returns 1 when individual tape renders fail", func() {
+		skipIfNoVHS()
+
+		// Create a temporary directory with a tape that will fail to render
+		tempDir := GinkgoT().TempDir()
+		goldenDir := GinkgoT().TempDir()
+
+		// Create an invalid tape file that will fail to render
+		tapePath := filepath.Join(tempDir, "invalid.tape")
+		err := os.WriteFile(tapePath, []byte("Output /tmp/invalid.gif\nType invalid command\n"), 0644)
+		Expect(err).NotTo(HaveOccurred())
+
+		var out, errOut bytes.Buffer
+		code := renderAndValidate(&out, &errOut, tempDir, goldenDir, 5, "")
+
+		// Should return 1 because rendering failed
+		Expect(code).To(Equal(1))
+		// Should report the render error
+		Expect(errOut.String()).To(ContainSubstring("Error rendering"))
+	})
+})
