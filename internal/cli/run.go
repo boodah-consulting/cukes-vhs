@@ -131,10 +131,18 @@ func renderAndValidate(out, errOut io.Writer, outputDir, goldenDir string, timeo
 	renderer := cukesvhs.NewRenderer(binaryPath)
 	timeout := pipelineTimeout(timeoutSec)
 
-	_, renderErr := renderer.RenderAll(outputDir, timeout)
+	renderResults, renderErr := renderer.RenderAll(outputDir, timeout)
 	if renderErr != nil {
 		fmt.Fprintf(errOut, "Error rendering tapes: %v\n", renderErr)
 		return 1
+	}
+
+	// Check for individual render failures
+	for _, result := range renderResults {
+		if !result.Success {
+			fmt.Fprintf(errOut, "Error rendering tapes: %s\n", result.Error)
+			return 1
+		}
 	}
 
 	fmt.Fprintf(out, "Validating...\n")
