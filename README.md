@@ -31,8 +31,8 @@ cukes-vhs list
 # Generate tape files from Gherkin scenarios
 cukes-vhs generate
 
-# Run generated tapes
-cukes-vhs run
+# Run generated tapes (full pipeline: generate → render → validate)
+cukes-vhs run --all --output demos/
 
 # Update golden baselines
 cukes-vhs update-baseline

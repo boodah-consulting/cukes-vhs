@@ -9,7 +9,7 @@ Hide
 
 Show
 
-Type@100ms "vhs demos/output/list-available-scenarios/list-all-translatable-scenarios.tape"
+Type@100ms "cukes-vhs run --scenario 'list all translatable scenarios' --output demos/"
 Sleep 2s
 Enter
 
