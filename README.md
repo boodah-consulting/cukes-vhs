@@ -41,7 +41,7 @@ cukes-vhs update-baseline
 ## Demo
 
 ### Run Tapes
-![Run Tapes](demos/run-generated-tapes/run-tape-with-vhs.gif)
+![Run Tapes](demos/run-generated-tapes/run-tape-with-cukes-vhs.gif)
 
 ### List Scenarios
 ![List Scenarios](demos/list-available-scenarios/list-all-translatable-scenarios.gif)
