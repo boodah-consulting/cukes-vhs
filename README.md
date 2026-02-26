@@ -52,7 +52,7 @@ cukes-vhs update-baseline
 ## Development
 
 ### Prerequisites
-- Go 1.23+
+- Go 1.25.4+
 - Node.js for commitlint
 - golangci-lint v2.8.0+
 
