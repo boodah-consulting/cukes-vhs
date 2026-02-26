@@ -463,7 +463,7 @@ var _ = Describe("WriteTape", func() {
 			skipIfWindows("os.Chmod does not restrict access on windows")
 			tmpDir := GinkgoT().TempDir()
 			featureDir := filepath.Join(tmpDir, "write-fail")
-			err := os.MkdirAll(featureDir, 0o755)
+			err := os.MkdirAll(featureDir, 0o750)
 			Expect(err).NotTo(HaveOccurred())
 
 			scenario := cukesvhs.ScenarioIR{
@@ -476,7 +476,7 @@ var _ = Describe("WriteTape", func() {
 
 			err = os.Chmod(featureDir, 0o000)
 			Expect(err).NotTo(HaveOccurred())
-			defer os.Chmod(featureDir, 0o755) //nolint:errcheck
+			defer func() { _ = os.Chmod(featureDir, 0o700) }()
 
 			err = cukesvhs.WriteTape(scenario, cukesvhs.GeneratorConfig{OutputDir: tmpDir})
 			Expect(err).To(HaveOccurred())
@@ -490,7 +490,7 @@ var _ = Describe("resolveConfigPath", func() {
 		It("returns the custom path and empty warning", func() {
 			tmpDir := GinkgoT().TempDir()
 			customPath := filepath.Join(tmpDir, "custom-config.tape")
-			Expect(os.WriteFile(customPath, []byte("custom content"), 0o644)).To(Succeed())
+			Expect(os.WriteFile(customPath, []byte("custom content"), 0o600)).To(Succeed())
 
 			result, warning, cleanup, err := cukesvhs.ResolveConfigPath(customPath)
 			Expect(err).NotTo(HaveOccurred())

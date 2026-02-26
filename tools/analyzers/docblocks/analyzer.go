@@ -45,7 +45,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 	}
 	checkPackageDoc(pass, hasDocGo)
-	return nil, nil //nolint:nilnil // go/analysis framework requires (interface{}, error) return
+	return nil, nil
 }
 
 func checkFuncDecl(pass *analysis.Pass, fn *ast.FuncDecl) {
@@ -126,13 +126,13 @@ func checkValueDecl(pass *analysis.Pass, decl *ast.GenDecl) {
 	}
 }
 
-func checkNamePrefix(pass *analysis.Pass, pos token.Pos, text string, name string) {
+func checkNamePrefix(pass *analysis.Pass, pos token.Pos, text, name string) {
 	if !strings.HasPrefix(text, name) {
 		pass.Reportf(pos, "doc comment for %s should start with \"%s\"", name, name)
 	}
 }
 
-func checkReturnSection(pass *analysis.Pass, fn *ast.FuncDecl, kind string, text string) {
+func checkReturnSection(pass *analysis.Pass, fn *ast.FuncDecl, kind, text string) {
 	if fn.Type.Results == nil || len(fn.Type.Results.List) == 0 {
 		return
 	}
@@ -142,7 +142,7 @@ func checkReturnSection(pass *analysis.Pass, fn *ast.FuncDecl, kind string, text
 	}
 }
 
-func checkExpectedSection(pass *analysis.Pass, fn *ast.FuncDecl, kind string, text string) {
+func checkExpectedSection(pass *analysis.Pass, fn *ast.FuncDecl, kind, text string) {
 	if !hasParameters(fn) {
 		return
 	}
@@ -152,13 +152,13 @@ func checkExpectedSection(pass *analysis.Pass, fn *ast.FuncDecl, kind string, te
 	}
 }
 
-func checkSideEffectsSection(pass *analysis.Pass, pos token.Pos, kind string, name string, text string) {
+func checkSideEffectsSection(pass *analysis.Pass, pos token.Pos, kind, name, text string) {
 	if !hasSection(text, "Side effects:") {
 		pass.Reportf(pos, "exported %s %s missing Side effects: section", kind, name)
 	}
 }
 
-func hasSection(text string, section string) bool {
+func hasSection(text, section string) bool {
 	for _, line := range strings.Split(text, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == section || strings.HasPrefix(trimmed, section) {
@@ -214,14 +214,14 @@ func checkPackageDoc(pass *analysis.Pass, hasDocGo bool) {
 	}
 }
 
-func specDoc(specDoc *ast.CommentGroup, declDoc *ast.CommentGroup) *ast.CommentGroup {
+func specDoc(specDoc, declDoc *ast.CommentGroup) *ast.CommentGroup {
 	if specDoc != nil {
 		return specDoc
 	}
 	return declDoc
 }
 
-func resolveValueDoc(grouped bool, specDoc *ast.CommentGroup, declDoc *ast.CommentGroup) *ast.CommentGroup {
+func resolveValueDoc(grouped bool, specDoc, declDoc *ast.CommentGroup) *ast.CommentGroup {
 	if grouped {
 		if specDoc != nil {
 			return specDoc
@@ -234,6 +234,6 @@ func resolveValueDoc(grouped bool, specDoc *ast.CommentGroup, declDoc *ast.Comme
 	return declDoc
 }
 
-func isGroupDoc(grouped bool, specDoc *ast.CommentGroup, declDoc *ast.CommentGroup) bool {
+func isGroupDoc(grouped bool, specDoc, declDoc *ast.CommentGroup) bool {
 	return grouped && specDoc == nil && declDoc != nil
 }

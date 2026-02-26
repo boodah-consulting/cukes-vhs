@@ -28,7 +28,7 @@ func writeFakeVHS(dir string, exitCode int, stderrLines ...string) {
 	err := os.WriteFile(path, []byte(script.String()), 0o600)
 	Expect(err).NotTo(HaveOccurred())
 
-	Expect(os.Chmod(path, 0o755)).To(Succeed())
+	Expect(os.Chmod(path, 0o750)).To(Succeed())
 }
 
 // writeTapeFile creates a minimal tape file with the given Output directives.
@@ -223,7 +223,7 @@ var _ = Describe("Renderer", func() {
 				script := "#!/bin/sh\nsleep 10\nexit 0\n"
 				path := filepath.Join(fakeVHSDir, "vhs")
 				Expect(os.WriteFile(path, []byte(script), 0o600)).To(Succeed())
-				Expect(os.Chmod(path, 0o755)).To(Succeed())
+				Expect(os.Chmod(path, 0o750)).To(Succeed())
 				Expect(os.Setenv("PATH", fakeVHSDir+string(os.PathListSeparator)+originalPATH)).To(Succeed())
 			})
 
@@ -391,7 +391,7 @@ var _ = Describe("Renderer", func() {
 
 			It("discovers tape files recursively in subdirectories", func() {
 				subDir := filepath.Join(tmpDir, "subdir")
-				Expect(os.MkdirAll(subDir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(subDir, 0o750)).To(Succeed())
 
 				writeTapeFile(tmpDir, "top.tape", []string{"out/top.gif"})
 				writeTapeFile(subDir, "nested.tape", []string{"out/nested.gif"})

@@ -102,9 +102,9 @@ var _ = Describe("Golden baseline management", func() {
 				skipIfWindows("os.Chmod does not restrict access on windows")
 				readOnlyParent := GinkgoT().TempDir()
 				targetDir := filepath.Join(readOnlyParent, "locked-scenario")
-				Expect(os.MkdirAll(targetDir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(targetDir, 0o750)).To(Succeed())
 				Expect(os.Chmod(targetDir, 0o000)).To(Succeed())
-				defer os.Chmod(targetDir, 0o755) //nolint:errcheck
+				defer func() { _ = os.Chmod(targetDir, 0o700) }()
 
 				err := cukesvhs.SaveBaseline(readOnlyParent, "locked scenario", asciiSrc, gifSrc)
 				Expect(err).To(HaveOccurred())
@@ -158,7 +158,7 @@ var _ = Describe("Golden baseline management", func() {
 		Context("when the scenario directory exists but baseline.txt is missing", func() {
 			BeforeEach(func() {
 				dir := filepath.Join(goldenDir, "partial-scenario")
-				Expect(os.MkdirAll(dir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(dir, 0o750)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(dir, "baseline.gif"), []byte("gif"), 0o600)).To(Succeed())
 			})
 
@@ -172,7 +172,7 @@ var _ = Describe("Golden baseline management", func() {
 		Context("when the scenario directory exists but baseline.gif is missing", func() {
 			BeforeEach(func() {
 				dir := filepath.Join(goldenDir, "partial-gif")
-				Expect(os.MkdirAll(dir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(dir, 0o750)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(dir, "baseline.txt"), []byte("ascii"), 0o600)).To(Succeed())
 			})
 
@@ -255,7 +255,7 @@ var _ = Describe("Golden baseline management", func() {
 				skipIfWindows("os.Chmod does not restrict access on windows")
 				lockedDir := GinkgoT().TempDir()
 				Expect(os.Chmod(lockedDir, 0o000)).To(Succeed())
-				defer os.Chmod(lockedDir, 0o755) //nolint:errcheck
+				defer func() { _ = os.Chmod(lockedDir, 0o700) }()
 
 				_, err := cukesvhs.ListBaselines(lockedDir)
 				Expect(err).To(HaveOccurred())
@@ -318,7 +318,7 @@ var _ = Describe("Golden baseline management", func() {
 		Context("when a dir exists but has no baseline files", func() {
 			BeforeEach(func() {
 				emptyDir := filepath.Join(goldenDir, "empty-scenario")
-				Expect(os.MkdirAll(emptyDir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(emptyDir, 0o750)).To(Succeed())
 			})
 
 			It("omits the incomplete entry", func() {
@@ -331,7 +331,7 @@ var _ = Describe("Golden baseline management", func() {
 		Context("when a dir has only baseline.txt but not baseline.gif", func() {
 			BeforeEach(func() {
 				dir := filepath.Join(goldenDir, "partial-only")
-				Expect(os.MkdirAll(dir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(dir, 0o750)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(dir, "baseline.txt"), []byte("ascii"), 0o600)).To(Succeed())
 			})
 
@@ -346,11 +346,11 @@ var _ = Describe("Golden baseline management", func() {
 			It("returns an error", func() {
 				skipIfWindows("os.Chmod does not restrict access on windows")
 				lockedSubdir := filepath.Join(goldenDir, "locked-sub")
-				Expect(os.MkdirAll(lockedSubdir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(lockedSubdir, 0o750)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(lockedSubdir, "baseline.txt"), []byte("ascii"), 0o600)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(lockedSubdir, "baseline.gif"), []byte("gif"), 0o600)).To(Succeed())
 				Expect(os.Chmod(lockedSubdir, 0o000)).To(Succeed())
-				defer os.Chmod(lockedSubdir, 0o755) //nolint:errcheck
+				defer func() { _ = os.Chmod(lockedSubdir, 0o700) }()
 
 				_, err := cukesvhs.ListBaselines(goldenDir)
 				Expect(err).To(HaveOccurred())

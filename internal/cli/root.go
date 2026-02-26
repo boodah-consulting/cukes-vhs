@@ -81,7 +81,7 @@ func Execute() int {
 }
 
 // Run dispatches CLI subcommands based on args (legacy interface for tests).
-func Run(args []string, out io.Writer, errOut io.Writer) int {
+func Run(args []string, out, errOut io.Writer) int {
 	SetWriters(out, errOut)
 	rootCmd = NewRootCmd()
 	rootCmd.SetArgs(args)
@@ -117,7 +117,7 @@ func Run(args []string, out io.Writer, errOut io.Writer) int {
 
 // isFlag checks if the argument is a flag.
 func isFlag(arg string) bool {
-	return len(arg) > 0 && arg[0] == '-'
+	return arg != "" && arg[0] == '-'
 }
 
 // startsWithErrorPrefix checks if the error message already starts with "Error".

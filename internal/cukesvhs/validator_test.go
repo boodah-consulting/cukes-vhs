@@ -262,7 +262,7 @@ var _ = Describe("Validator", func() {
 
 				goldenASCII, _, _ := cukesvhs.GetBaseline(goldenDir, "Unreadable Golden")
 				Expect(os.Chmod(goldenASCII, 0o000)).To(Succeed())
-				defer os.Chmod(goldenASCII, 0o644) //nolint:errcheck
+				defer func() { _ = os.Chmod(goldenASCII, 0o600) }()
 
 				_, err = cukesvhs.ValidateScenario(goldenDir, "Unreadable Golden", asciiPath)
 				Expect(err).To(HaveOccurred())
@@ -275,7 +275,7 @@ var _ = Describe("Validator", func() {
 				skipIfWindows("os.Chmod does not restrict access on windows")
 				readOnlyGoldenDir := GinkgoT().TempDir()
 				Expect(os.Chmod(readOnlyGoldenDir, 0o555)).To(Succeed())
-				defer os.Chmod(readOnlyGoldenDir, 0o755) //nolint:errcheck
+				defer func() { _ = os.Chmod(readOnlyGoldenDir, 0o700) }()
 
 				asciiPath := filepath.Join(outputDir, "output.ascii")
 				writeASCIIFile(asciiPath, "content\n")
@@ -292,9 +292,9 @@ var _ = Describe("Validator", func() {
 				customGoldenDir := GinkgoT().TempDir()
 
 				placeholderDir := filepath.Join(customGoldenDir, ".placeholders")
-				Expect(os.MkdirAll(placeholderDir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(placeholderDir, 0o750)).To(Succeed())
 				Expect(os.Chmod(placeholderDir, 0o555)).To(Succeed())
-				defer os.Chmod(placeholderDir, 0o755) //nolint:errcheck
+				defer func() { _ = os.Chmod(placeholderDir, 0o700) }()
 
 				asciiPath := filepath.Join(outputDir, "output.ascii")
 				writeASCIIFile(asciiPath, "content\n")
@@ -440,7 +440,7 @@ var _ = Describe("Validator", func() {
 		Context("with .ascii files in subdirectories", func() {
 			BeforeEach(func() {
 				subDir := filepath.Join(outputDir, "feature")
-				Expect(os.MkdirAll(subDir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(subDir, 0o750)).To(Succeed())
 
 				writeASCIIFile(filepath.Join(outputDir, "top.ascii"), "top level\n")
 				writeASCIIFile(filepath.Join(subDir, "nested.ascii"), "nested content\n")
@@ -526,7 +526,7 @@ var _ = Describe("Validator", func() {
 				Expect(saveErr).NotTo(HaveOccurred())
 
 				Expect(os.Chmod(asciiPath, 0o000)).To(Succeed())
-				defer os.Chmod(asciiPath, 0o644) //nolint:errcheck
+				defer func() { _ = os.Chmod(asciiPath, 0o600) }()
 
 				results, err := cukesvhs.ValidateAll(goldenDir, outputDir)
 				Expect(err).NotTo(HaveOccurred())

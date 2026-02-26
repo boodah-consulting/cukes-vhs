@@ -131,7 +131,6 @@ func extractScenarios(feature *messages.Feature, source SourceType) []ScenarioIR
 				ir := buildOutlineIR(scenario, feature.Name, tags, source, backgroundSteps, nil, nil)
 				results = append(results, ir)
 			}
-
 		} else {
 			results = append(results, buildScenarioIR(scenario, feature.Name, tags, source, backgroundSteps))
 		}
@@ -183,7 +182,6 @@ func buildOutlineIR(
 	header *messages.TableRow,
 	row *messages.TableRow,
 ) ScenarioIR {
-
 	ir := ScenarioIR{
 		Name:    scenario.Name,
 		Feature: featureName,

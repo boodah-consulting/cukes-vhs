@@ -160,16 +160,47 @@ func parseGenerateFlags(args []string, errOut io.Writer) (*generateOptions, erro
 		return nil, err
 	}
 
-	*opts.generateAll, _ = cmd.Flags().GetBool("all")
-	*opts.featureFilter, _ = cmd.Flags().GetString("feature")
-	*opts.scenarioFilter, _ = cmd.Flags().GetString("scenario")
-	*opts.featuresDir, _ = cmd.Flags().GetString("features")
-	*opts.scenariosDir, _ = cmd.Flags().GetString("scenarios-dir")
-	*opts.outputDir, _ = cmd.Flags().GetString("output")
-	*opts.configSource, _ = cmd.Flags().GetString("config-source")
-	*opts.verbose, _ = cmd.Flags().GetBool("verbose")
-	*opts.timeoutSec, _ = cmd.Flags().GetInt("timeout")
-	*opts.binaryPath, _ = cmd.Flags().GetString("binary-path")
+	var err error
+	*opts.generateAll, err = cmd.Flags().GetBool("all")
+	if err != nil {
+		return nil, err
+	}
+	*opts.featureFilter, err = cmd.Flags().GetString("feature")
+	if err != nil {
+		return nil, err
+	}
+	*opts.scenarioFilter, err = cmd.Flags().GetString("scenario")
+	if err != nil {
+		return nil, err
+	}
+	*opts.featuresDir, err = cmd.Flags().GetString("features")
+	if err != nil {
+		return nil, err
+	}
+	*opts.scenariosDir, err = cmd.Flags().GetString("scenarios-dir")
+	if err != nil {
+		return nil, err
+	}
+	*opts.outputDir, err = cmd.Flags().GetString("output")
+	if err != nil {
+		return nil, err
+	}
+	*opts.configSource, err = cmd.Flags().GetString("config-source")
+	if err != nil {
+		return nil, err
+	}
+	*opts.verbose, err = cmd.Flags().GetBool("verbose")
+	if err != nil {
+		return nil, err
+	}
+	*opts.timeoutSec, err = cmd.Flags().GetInt("timeout")
+	if err != nil {
+		return nil, err
+	}
+	*opts.binaryPath, err = cmd.Flags().GetString("binary-path")
+	if err != nil {
+		return nil, err
+	}
 
 	if *opts.outputDir == "" {
 		fmt.Fprintf(errOut, "Error: --output is required\n")

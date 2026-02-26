@@ -260,7 +260,7 @@ var _ = Describe("ParseFeatureDir", func() {
 			})
 
 			It("does not contain unsubstituted placeholders", func() {
-				allSteps := append(results[0].SetupSteps, results[0].DemoSteps...) //nolint:gocritic
+				allSteps := append(results[0].SetupSteps, results[0].DemoSteps...)
 				for _, step := range allSteps {
 					Expect(step.Text).NotTo(ContainSubstring("<input>"))
 					Expect(step.Text).NotTo(ContainSubstring("<output>"))

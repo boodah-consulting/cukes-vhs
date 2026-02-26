@@ -177,7 +177,7 @@ func runListCountCmd(results []cukesvhs.AnalysisResult, out io.Writer) error {
 }
 
 // runListJSONCmd outputs the analysis results as JSON.
-func runListJSONCmd(results []cukesvhs.AnalysisResult, out io.Writer, errOut io.Writer) error {
+func runListJSONCmd(results []cukesvhs.AnalysisResult, out, errOut io.Writer) error {
 	type jsonScenario struct {
 		ScenarioName string `json:"scenario_name"`
 		Feature      string `json:"feature"`
@@ -277,7 +277,7 @@ func runListCount(results []cukesvhs.AnalysisResult, out io.Writer) int {
 	return 0
 }
 
-func runListJSON(results []cukesvhs.AnalysisResult, out io.Writer, errOut io.Writer) int {
+func runListJSON(results []cukesvhs.AnalysisResult, out, errOut io.Writer) int {
 	if err := runListJSONCmd(results, out, errOut); err != nil {
 		return 1
 	}

@@ -228,7 +228,7 @@ func truncate(s string, maxLen int) string {
 
 // normaliseArgs rewrites bare positional keywords to flag form so that
 // Go's flag package (which stops at the first non-flag arg) parses them.
-// Example: ["all", "--output", "demo"] → ["--all", "--output", "demo"]
+// Example: ["all", "--output", "demo"] → ["--all", "--output", "demo"].
 func normaliseArgs(args []string) []string {
 	normalised := make([]string, len(args))
 	copy(normalised, args)

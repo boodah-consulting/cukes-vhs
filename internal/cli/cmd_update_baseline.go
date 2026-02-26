@@ -160,9 +160,19 @@ func parseUpdateBaselineFlags(args []string, errOut io.Writer) (*updateBaselineO
 		return nil, nil, err
 	}
 
-	*opts.updateAll, _ = cmd.Flags().GetBool("all")
-	*opts.goldenDir, _ = cmd.Flags().GetString("golden")
-	*opts.outputDir, _ = cmd.Flags().GetString("output")
+	var err error
+	*opts.updateAll, err = cmd.Flags().GetBool("all")
+	if err != nil {
+		return nil, nil, err
+	}
+	*opts.goldenDir, err = cmd.Flags().GetString("golden")
+	if err != nil {
+		return nil, nil, err
+	}
+	*opts.outputDir, err = cmd.Flags().GetString("output")
+	if err != nil {
+		return nil, nil, err
+	}
 
 	positionalArgs := cmd.Flags().Args()
 

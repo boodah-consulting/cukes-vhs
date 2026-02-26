@@ -75,7 +75,7 @@ type initOptions struct {
 }
 
 // runInitCmd is a legacy wrapper for backward compatibility with tests.
-func runInitCmd(args []string, out io.Writer, errOut io.Writer) int {
+func runInitCmd(args []string, out, errOut io.Writer) int {
 	SetWriters(out, errOut)
 	cmd := newInitCmd()
 	cmd.SetArgs(args)
@@ -101,8 +101,14 @@ func parseInitFlags(args []string, errOut io.Writer) (*initOptions, error) {
 		return nil, err
 	}
 
-	force, _ := cmd.Flags().GetBool("force")
-	outputDir, _ := cmd.Flags().GetString("output")
+	force, err := cmd.Flags().GetBool("force")
+	if err != nil {
+		return nil, err
+	}
+	outputDir, err := cmd.Flags().GetString("output")
+	if err != nil {
+		return nil, err
+	}
 
 	opts.force = force
 	opts.outputDir = outputDir

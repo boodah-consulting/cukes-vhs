@@ -24,17 +24,16 @@ const (
 // Otherwise, write embedded config to a unique temp file and return that path.
 // If customPath was provided but not found, a warning message is returned.
 // The caller must call the cleanup function to remove any temp file created.
-func resolveConfigPath(customPath string) (string, string, func(), error) {
+func resolveConfigPath(customPath string) (configPath, warning string, cleanup func(), err error) {
 	return resolveConfigPathFs(DefaultFs(), customPath)
 }
 
 // resolveConfigPathFs resolves config path using the provided filesystem.
-func resolveConfigPathFs(afs afero.Fs, customPath string) (string, string, func(), error) {
-	var warning string
+func resolveConfigPathFs(afs afero.Fs, customPath string) (configPath, warning string, cleanup func(), err error) {
 	if customPath != "" {
-		exists, err := afero.Exists(afs, customPath)
-		if err != nil {
-			return "", "", func() {}, fmt.Errorf("checking config file: %w", err)
+		exists, existsErr := afero.Exists(afs, customPath)
+		if existsErr != nil {
+			return "", "", func() {}, fmt.Errorf("checking config file: %w", existsErr)
 		}
 		if exists {
 			return customPath, "", func() {}, nil
@@ -49,20 +48,30 @@ func resolveConfigPathFs(afs afero.Fs, customPath string) (string, string, func(
 
 	tmpPath := f.Name()
 
-	if _, err := f.Write([]byte(defaultConfigContent)); err != nil {
-		_ = f.Close()
-		_ = afs.Remove(tmpPath)
-
-		return "", "", func() {}, fmt.Errorf("writing embedded config: %w", err)
+	if _, writeErr := f.WriteString(defaultConfigContent); writeErr != nil {
+		closeErr := f.Close()
+		if closeErr != nil {
+			return "", "", func() {}, fmt.Errorf("closing temp file: %w", closeErr)
+		}
+		removeErr := afs.Remove(tmpPath)
+		if removeErr != nil {
+			return "", "", func() {}, fmt.Errorf("removing temp file: %w", removeErr)
+		}
+		return "", "", func() {}, fmt.Errorf("writing embedded config: %w", writeErr)
 	}
 
-	if err := f.Close(); err != nil {
-		_ = afs.Remove(tmpPath)
-
-		return "", "", func() {}, fmt.Errorf("closing temp config file: %w", err)
+	if closeErr := f.Close(); closeErr != nil {
+		removeErr := afs.Remove(tmpPath)
+		if removeErr != nil {
+			return "", "", func() {}, fmt.Errorf("removing temp file: %w", removeErr)
+		}
+		return "", "", func() {}, fmt.Errorf("closing temp config file: %w", closeErr)
 	}
 
-	return tmpPath, warning, func() { _ = afs.Remove(tmpPath) }, nil
+	cleanup = func() {
+		_ = afs.Remove(tmpPath)
+	}
+	return tmpPath, warning, cleanup, nil
 }
 
 // forbiddenPatterns returns patterns that must not appear in generated tape content.

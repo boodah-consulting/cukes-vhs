@@ -15,7 +15,7 @@ var _ = Describe("TranslateStep", func() {
 
 			Expect(translatable).To(BeTrue(), "expected translatable, got reason: %s", reason)
 			Expect(cmds).NotTo(BeEmpty(), "expected commands for menu selection")
-			Expect(len(cmds)).To(Equal(menuPosition+1),
+			Expect(cmds).To(HaveLen(menuPosition+1),
 				"menu position %d requires %d navigation steps plus confirmation",
 				menuPosition, menuPosition)
 		},

@@ -60,7 +60,7 @@ func init() {
 // Expected: stepText is a Gherkin step string, stepType is "Given", "When", or "Then".
 // Returns: VHS commands (or nil if intent unknown), translatable flag, and reason if untranslatable.
 // Side effects: None.
-func TranslateStep(stepText, stepType string) ([]VHSCommand, bool, string) {
+func TranslateStep(stepText, stepType string) (commands []VHSCommand, translatable bool, reason string) {
 	for _, m := range matchers {
 		// Skip if matcher requires specific step type and it doesn't match
 		if m.stepType != "" && m.stepType != stepType {
@@ -115,7 +115,6 @@ func ListTranslatablePatterns() []StepPattern {
 	return patterns
 }
 
-//nolint:funlen // matcher registration is long by design
 func buildMatchers() []stepMatcher {
 	return []stepMatcher{
 		formBypassMatcher(`^I submit the event$`),

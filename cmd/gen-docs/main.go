@@ -50,7 +50,10 @@ func run() error {
 		return fmt.Errorf("generating man pages: %w", err)
 	}
 
-	absPath, _ := filepath.Abs(outDir)
+	absPath, err := filepath.Abs(outDir)
+	if err != nil {
+		return fmt.Errorf("resolving output path: %w", err)
+	}
 	fmt.Printf("Man pages generated in %s\n", absPath)
 
 	return nil

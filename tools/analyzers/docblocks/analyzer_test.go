@@ -3,8 +3,9 @@ package docblocks_test
 import (
 	"testing"
 
-	"github.com/boodah-consulting/cukes-vhs/tools/analyzers/docblocks"
 	"golang.org/x/tools/go/analysis/analysistest"
+
+	"github.com/boodah-consulting/cukes-vhs/tools/analyzers/docblocks"
 )
 
 func TestFunctions(t *testing.T) {

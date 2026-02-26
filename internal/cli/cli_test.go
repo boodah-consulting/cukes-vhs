@@ -3,7 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -625,7 +625,7 @@ var _ = Describe("cukesvhs CLI", func() {
 			It("returns error when tape file cannot be written to read-only dir", func() {
 				skipIfWindows("file permission tests not supported on Windows")
 				readOnlyDir := filepath.Join(tmpDir, "dir-fail")
-				err := os.MkdirAll(readOnlyDir, 0o755)
+				err := os.MkdirAll(readOnlyDir, 0o750)
 				Expect(err).NotTo(HaveOccurred())
 
 				scenario := cukesvhs.ScenarioIR{
@@ -645,7 +645,7 @@ var _ = Describe("cukesvhs CLI", func() {
 
 				err = os.Chmod(readOnlyDir, 0o000)
 				Expect(err).NotTo(HaveOccurred())
-				defer os.Chmod(readOnlyDir, 0o755) //nolint:errcheck,G302
+				defer func() { _ = os.Chmod(readOnlyDir, 0o700) }()
 
 				_, err = writeScenarioTape(scenario, tmpDir, "demos/vhs/config.tape")
 				Expect(err).To(HaveOccurred())
@@ -983,7 +983,7 @@ var _ = Describe("cukesvhs CLI", func() {
 				outputDir := GinkgoT().TempDir()
 
 				featureDir := filepath.Join(outputDir, "user-authentication")
-				Expect(os.MkdirAll(featureDir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(featureDir, 0o750)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(featureDir, "user-logs-in.ascii"), []byte("ascii content"), 0o600)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(featureDir, "user-logs-in.gif"), []byte("gif content"), 0o600)).To(Succeed())
 
@@ -1025,8 +1025,8 @@ var _ = Describe("cukesvhs CLI", func() {
 
 				featureA := filepath.Join(outputDir, "feature-a")
 				featureB := filepath.Join(outputDir, "feature-b")
-				Expect(os.MkdirAll(featureA, 0o755)).To(Succeed())
-				Expect(os.MkdirAll(featureB, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(featureA, 0o750)).To(Succeed())
+				Expect(os.MkdirAll(featureB, 0o750)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(featureA, "user-logs-in.ascii"), []byte("a"), 0o600)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(featureA, "user-logs-in.gif"), []byte("ga"), 0o600)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(featureB, "user-logs-in.ascii"), []byte("b"), 0o600)).To(Succeed())
@@ -1074,7 +1074,7 @@ var _ = Describe("cukesvhs CLI", func() {
 				Expect(os.WriteFile(gifPath, []byte("gif content"), 0o600)).To(Succeed())
 
 				Expect(os.Chmod(goldenDir, 0o000)).To(Succeed())
-				defer os.Chmod(goldenDir, 0o700) //nolint:errcheck,G302
+				defer func() { _ = os.Chmod(goldenDir, 0o700) }()
 
 				var out, errOut bytes.Buffer
 				code := Run([]string{
@@ -1101,7 +1101,7 @@ var _ = Describe("cukesvhs CLI", func() {
 				Expect(os.WriteFile(gifPath, []byte("gif content"), 0o600)).To(Succeed())
 
 				Expect(os.Chmod(goldenDir, 0o000)).To(Succeed())
-				defer os.Chmod(goldenDir, 0o700) //nolint:errcheck,G302
+				defer func() { _ = os.Chmod(goldenDir, 0o700) }()
 
 				var out, errOut bytes.Buffer
 				code := Run([]string{
@@ -1262,7 +1262,7 @@ var _ = Describe("cukesvhs CLI", func() {
 			It("finds the file by scenario slug", func() {
 				outputDir := GinkgoT().TempDir()
 				featureDir := filepath.Join(outputDir, "user-authentication")
-				Expect(os.MkdirAll(featureDir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(featureDir, 0o750)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(featureDir, "user-logs-in.ascii"), []byte("content"), 0o600)).To(Succeed())
 
 				result, err := findASCIIFileForScenario(outputDir, "user-logs-in")
@@ -1297,8 +1297,8 @@ var _ = Describe("cukesvhs CLI", func() {
 				outputDir := GinkgoT().TempDir()
 				featureA := filepath.Join(outputDir, "feature-a")
 				featureB := filepath.Join(outputDir, "feature-b")
-				Expect(os.MkdirAll(featureA, 0o755)).To(Succeed())
-				Expect(os.MkdirAll(featureB, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(featureA, 0o750)).To(Succeed())
+				Expect(os.MkdirAll(featureB, 0o750)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(featureA, "user-logs-in.ascii"), []byte("a"), 0o600)).To(Succeed())
 				Expect(os.WriteFile(filepath.Join(featureB, "user-logs-in.ascii"), []byte("b"), 0o600)).To(Succeed())
 
@@ -1471,7 +1471,7 @@ var _ = Describe("cukesvhs CLI", func() {
 // failWriter is an io.Writer that always returns an error.
 type failWriter struct{}
 
-func (failWriter) Write([]byte) (int, error) { return 0, fmt.Errorf("write error") }
+func (failWriter) Write([]byte) (int, error) { return 0, errors.New("write error") }
 
 var _ = Describe("runInitCmd", func() {
 	Context("with valid args and writable directory", func() {
@@ -1507,7 +1507,7 @@ var _ = Describe("runInitCmd", func() {
 
 			tmpDir := GinkgoT().TempDir()
 			readOnlyDir := filepath.Join(tmpDir, "readonly")
-			Expect(os.MkdirAll(readOnlyDir, 0o555)).To(Succeed()) //nolint:G301
+			Expect(os.MkdirAll(readOnlyDir, 0o555)).To(Succeed())
 
 			var out, errOut bytes.Buffer
 			code := runInitCmd([]string{"--output", filepath.Join(readOnlyDir, "subdir")}, &out, &errOut)
@@ -1529,10 +1529,10 @@ var _ = Describe("collectOutputASCIIFiles walkErr branch", func() {
 
 		tmpDir := GinkgoT().TempDir()
 		subDir := filepath.Join(tmpDir, "blocked")
-		Expect(os.MkdirAll(subDir, 0o755)).To(Succeed()) //nolint:G301
-		Expect(os.WriteFile(filepath.Join(subDir, "test.ascii"), []byte("content"), 0o644)).To(Succeed())
+		Expect(os.MkdirAll(subDir, 0o750)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(subDir, "test.ascii"), []byte("content"), 0o600)).To(Succeed())
 		Expect(os.Chmod(subDir, 0o000)).To(Succeed())
-		DeferCleanup(func() { os.Chmod(subDir, 0o755) })
+		DeferCleanup(func() { os.Chmod(subDir, 0o750) })
 
 		files, err := collectOutputASCIIFiles(tmpDir)
 
@@ -1567,13 +1567,13 @@ var _ = Describe("updateAllBaselines error path", func() {
 		tmpDir := GinkgoT().TempDir()
 
 		outputDir := filepath.Join(tmpDir, "output")
-		Expect(os.MkdirAll(outputDir, 0o755)).To(Succeed()) //nolint:G301
-		Expect(os.WriteFile(filepath.Join(outputDir, "test-scenario.ascii"), []byte("content"), 0o644)).To(Succeed())
+		Expect(os.MkdirAll(outputDir, 0o750)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(outputDir, "test-scenario.ascii"), []byte("content"), 0o600)).To(Succeed())
 
 		goldenDir := filepath.Join(tmpDir, "golden")
-		Expect(os.MkdirAll(goldenDir, 0o755)).To(Succeed())
+		Expect(os.MkdirAll(goldenDir, 0o750)).To(Succeed())
 		Expect(os.Chmod(goldenDir, 0o555)).To(Succeed())
-		DeferCleanup(func() { os.Chmod(goldenDir, 0o755) })
+		DeferCleanup(func() { os.Chmod(goldenDir, 0o750) })
 
 		var out, errOut bytes.Buffer
 		code := updateAllBaselines(goldenDir, outputDir, &out, &errOut)
@@ -1601,7 +1601,7 @@ var _ = Describe("renderAndValidate with failed render results", func() {
 		goldenDir := GinkgoT().TempDir()
 
 		tapePath := filepath.Join(tempDir, "invalid.tape")
-		err := os.WriteFile(tapePath, []byte("Output /tmp/invalid.gif\nType invalid command\n"), 0644)
+		err := os.WriteFile(tapePath, []byte("Output /tmp/invalid.gif\nType invalid command\n"), 0o600)
 		Expect(err).NotTo(HaveOccurred())
 
 		var out, errOut bytes.Buffer

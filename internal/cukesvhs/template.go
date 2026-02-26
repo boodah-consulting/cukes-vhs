@@ -14,7 +14,7 @@ var templateFS embed.FS
 var (
 	parsedTemplate *template.Template
 	templateParsed sync.Once
-	templateErr    error
+	errTemplate    error
 )
 
 // TapeData holds the data for rendering a VHS tape template.
@@ -36,18 +36,18 @@ func RenderTape(data TapeData) (string, error) {
 	templateParsed.Do(func() {
 		tmplContent, err := templateFS.ReadFile("templates/base.tape.tmpl")
 		if err != nil {
-			templateErr = fmt.Errorf("reading template: %w", err)
+			errTemplate = fmt.Errorf("reading template: %w", err)
 			return
 		}
 
 		parsedTemplate, err = template.New("base.tape").Parse(string(tmplContent))
 		if err != nil {
-			templateErr = fmt.Errorf("parsing template: %w", err)
+			errTemplate = fmt.Errorf("parsing template: %w", err)
 		}
 	})
 
-	if templateErr != nil {
-		return "", templateErr
+	if errTemplate != nil {
+		return "", errTemplate
 	}
 
 	var buf strings.Builder

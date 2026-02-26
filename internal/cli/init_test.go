@@ -72,7 +72,7 @@ var _ = Describe("init subcommand", func() {
 
 			BeforeEach(func() {
 				configPath = filepath.Join(tmpDir, "config.tape")
-				Expect(os.WriteFile(configPath, []byte("existing content"), 0o644)).To(Succeed())
+				Expect(os.WriteFile(configPath, []byte("existing content"), 0o600)).To(Succeed())
 			})
 
 			Context("without --force flag", func() {
@@ -139,9 +139,9 @@ var _ = Describe("init subcommand", func() {
 			It("returns an error when the parent is read-only", func() {
 				skipIfWindows("file permission tests not supported on Windows")
 				readOnlyDir := filepath.Join(tmpDir, "readonly")
-				Expect(os.MkdirAll(readOnlyDir, 0o755)).To(Succeed())
+				Expect(os.MkdirAll(readOnlyDir, 0o750)).To(Succeed())
 				Expect(os.Chmod(readOnlyDir, 0o000)).To(Succeed())
-				defer os.Chmod(readOnlyDir, 0o755) //nolint:errcheck
+				defer func() { _ = os.Chmod(readOnlyDir, 0o700) }()
 
 				opts := &initOptions{
 					outputDir: filepath.Join(readOnlyDir, "nested", "config"),
