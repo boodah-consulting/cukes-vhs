@@ -2,71 +2,91 @@ package cli
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
-	"io"
-	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
 
 	"github.com/boodah-consulting/cukes-vhs/internal/cukesvhs"
 )
 
-// runList implements the `list` subcommand.
-func runList(args []string, out io.Writer, errOut io.Writer) int {
-	fs := flag.NewFlagSet("list", flag.ContinueOnError)
-	featuresDir := fs.String("features", "features/", "Directory containing .feature files")
-	scenariosDir := fs.String("scenarios-dir", "demos/scenarios/", "Directory containing VHS-only .feature files")
-	asJSON := fs.Bool("json", false, "Output as JSON")
-	showCount := fs.Bool("count", false, "Show counts broken down by source")
-	showSteps := fs.Bool("steps", false, "Show translatable step patterns")
-	_ = fs.Bool("all", false, "List all scenarios (default behaviour)")
+// newListCmd creates the list command.
+func newListCmd() *cobra.Command {
+	var featuresDir string
+	var scenariosDir string
+	var asJSON bool
+	var showCount bool
+	var showSteps bool
 
-	if err := fs.Parse(args); err != nil {
-		fmt.Fprintf(errOut, "Error parsing flags: %v\n", err)
-		return 1
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List scenarios and their translatability",
+		Long: `List all scenarios from feature files and show their translatability status.
+
+By default, outputs a formatted table showing each scenario with its feature,
+source (business or VHS-only), and whether it can be translated to VHS commands.`,
+		Example: `  cukes-vhs list
+  cukes-vhs list --features features/ --scenarios-dir demos/scenarios/
+  cukes-vhs list --json
+  cukes-vhs list --count
+  cukes-vhs list --steps
+  cukes-vhs list --steps --json`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			errOut := cmd.ErrOrStderr()
+
+			if showSteps {
+				return runListStepsCmd(asJSON, out)
+			}
+
+			fmt.Fprintf(out, "Parsing...\n")
+
+			if _, err := cliFs.Stat(featuresDir); err != nil {
+				fmt.Fprintf(errOut, "Error parsing features dir %q: %v\n", featuresDir, err)
+				return err
+			}
+
+			businessScenarios, err := cukesvhs.ParseFeatureDir(featuresDir, cukesvhs.SourceBusiness)
+			if err != nil {
+				fmt.Fprintf(errOut, "Error parsing features dir %q: %v\n", featuresDir, err)
+				return err
+			}
+
+			vhsOnlyScenarios, err := cukesvhs.ParseFeatureDir(scenariosDir, cukesvhs.SourceVHSOnly)
+			if err != nil {
+				fmt.Fprintf(errOut, "Error parsing scenarios dir %q: %v\n", scenariosDir, err)
+				return err
+			}
+
+			allScenarios := make([]cukesvhs.ScenarioIR, 0, len(businessScenarios)+len(vhsOnlyScenarios))
+			allScenarios = append(allScenarios, businessScenarios...)
+			allScenarios = append(allScenarios, vhsOnlyScenarios...)
+			results := cukesvhs.AnalyseScenarios(allScenarios)
+
+			if showCount {
+				return runListCountCmd(results, out)
+			}
+
+			if asJSON {
+				return runListJSONCmd(results, out, errOut)
+			}
+
+			return runListTableCmd(results, out)
+		},
 	}
 
-	if *showSteps {
-		return runListSteps(*asJSON, out)
-	}
+	cmd.Flags().StringVar(&featuresDir, "features", "features/", "Directory containing .feature files")
+	cmd.Flags().StringVar(&scenariosDir, "scenarios-dir", "demos/scenarios/", "Directory containing VHS-only .feature files")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output as JSON")
+	cmd.Flags().BoolVar(&showCount, "count", false, "Show counts broken down by source")
+	cmd.Flags().BoolVar(&showSteps, "steps", false, "Show translatable step patterns")
+	cmd.Flags().Bool("all", false, "List all scenarios (default behaviour)")
 
-	fmt.Fprintf(out, "Parsing...\n")
-
-	if _, err := os.Stat(*featuresDir); err != nil {
-		fmt.Fprintf(errOut, "Error parsing features dir %q: %v\n", *featuresDir, err)
-		return 1
-	}
-
-	businessScenarios, err := cukesvhs.ParseFeatureDir(*featuresDir, cukesvhs.SourceBusiness)
-	if err != nil {
-		fmt.Fprintf(errOut, "Error parsing features dir %q: %v\n", *featuresDir, err)
-		return 1
-	}
-
-	vhsOnlyScenarios, err := cukesvhs.ParseFeatureDir(*scenariosDir, cukesvhs.SourceVHSOnly)
-	if err != nil {
-		fmt.Fprintf(errOut, "Error parsing scenarios dir %q: %v\n", *scenariosDir, err)
-		return 1
-	}
-
-	allScenarios := make([]cukesvhs.ScenarioIR, 0, len(businessScenarios)+len(vhsOnlyScenarios))
-	allScenarios = append(allScenarios, businessScenarios...)
-	allScenarios = append(allScenarios, vhsOnlyScenarios...)
-	results := cukesvhs.AnalyseScenarios(allScenarios)
-
-	if *showCount {
-		return runListCount(results, out)
-	}
-
-	if *asJSON {
-		return runListJSON(results, out, errOut)
-	}
-
-	return runListTable(results, out)
+	return cmd
 }
 
-// runListSteps outputs the translatable step patterns.
-func runListSteps(asJSON bool, out io.Writer) int {
+// runListStepsCmd outputs the translatable step patterns.
+func runListStepsCmd(asJSON bool, out outputWriter) error {
 	patterns := cukesvhs.ListTranslatablePatterns()
 
 	if asJSON {
@@ -91,10 +111,7 @@ func runListSteps(asJSON bool, out io.Writer) int {
 
 		enc := json.NewEncoder(out)
 		enc.SetIndent("", "  ")
-		if err := enc.Encode(output); err != nil {
-			return 1
-		}
-		return 0
+		return enc.Encode(output)
 	}
 
 	colPattern := 50
@@ -121,11 +138,11 @@ func runListSteps(asJSON bool, out io.Writer) int {
 		)
 	}
 
-	return 0
+	return nil
 }
 
-// runListCount outputs counts by source.
-func runListCount(results []cukesvhs.AnalysisResult, out io.Writer) int {
+// runListCountCmd outputs counts by source.
+func runListCountCmd(results []cukesvhs.AnalysisResult, out outputWriter) error {
 	var (
 		businessTotal        int
 		businessTranslatable int
@@ -154,11 +171,11 @@ func runListCount(results []cukesvhs.AnalysisResult, out io.Writer) int {
 		vhsOnlyTranslatable, vhsOnlyTotal,
 	)
 
-	return 0
+	return nil
 }
 
-// runListJSON outputs the analysis results as JSON.
-func runListJSON(results []cukesvhs.AnalysisResult, out io.Writer, errOut io.Writer) int {
+// runListJSONCmd outputs the analysis results as JSON.
+func runListJSONCmd(results []cukesvhs.AnalysisResult, out outputWriter, errOut outputWriter) error {
 	type jsonScenario struct {
 		ScenarioName string `json:"scenario_name"`
 		Feature      string `json:"feature"`
@@ -196,14 +213,14 @@ func runListJSON(results []cukesvhs.AnalysisResult, out io.Writer, errOut io.Wri
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(payload); err != nil {
 		fmt.Fprintf(errOut, "Error encoding JSON: %v\n", err)
-		return 1
+		return err
 	}
 
-	return 0
+	return nil
 }
 
-// runListTable outputs the analysis results as a formatted table.
-func runListTable(results []cukesvhs.AnalysisResult, out io.Writer) int {
+// runListTableCmd outputs the analysis results as a formatted table.
+func runListTableCmd(results []cukesvhs.AnalysisResult, out outputWriter) error {
 	colScenario := 40
 	colFeature := 25
 	colSource := 10
@@ -246,5 +263,21 @@ func runListTable(results []cukesvhs.AnalysisResult, out io.Writer) int {
 		)
 	}
 
+	return nil
+}
+
+// Legacy wrappers for backward compatibility with tests
+
+func runListCount(results []cukesvhs.AnalysisResult, out outputWriter) int {
+	if err := runListCountCmd(results, out); err != nil {
+		return 1
+	}
+	return 0
+}
+
+func runListJSON(results []cukesvhs.AnalysisResult, out outputWriter, errOut outputWriter) int {
+	if err := runListJSONCmd(results, out, errOut); err != nil {
+		return 1
+	}
 	return 0
 }

@@ -190,7 +190,7 @@ var _ = Describe("cukesvhs CLI", func() {
 				code := Run([]string{"list", "--unknown-flag-xyz"}, &out, &errOut)
 
 				Expect(code).To(Equal(1))
-				Expect(errOut.String()).To(ContainSubstring("Error parsing flags"))
+				Expect(errOut.String()).To(ContainSubstring("unknown flag"))
 			})
 		})
 	})
@@ -768,7 +768,7 @@ var _ = Describe("cukesvhs CLI", func() {
 				code := Run([]string{"run", "--unknown-flag-xyz"}, &out, &errOut)
 
 				Expect(code).To(Equal(1))
-				Expect(errOut.String()).To(ContainSubstring("Error parsing flags"))
+				Expect(errOut.String()).To(ContainSubstring("unknown flag"))
 			})
 		})
 
@@ -938,7 +938,7 @@ var _ = Describe("cukesvhs CLI", func() {
 				code := Run([]string{"update-baseline", "--unknown-flag-xyz"}, &out, &errOut)
 
 				Expect(code).To(Equal(1))
-				Expect(errOut.String()).To(ContainSubstring("Error parsing flags"))
+				Expect(errOut.String()).To(ContainSubstring("unknown flag"))
 			})
 		})
 
