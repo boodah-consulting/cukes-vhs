@@ -7,8 +7,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/afero"
+
 	"github.com/boodah-consulting/cukes-vhs/internal/cukesvhs"
 )
+
+// writeFileFs writes data to a file using the provided filesystem.
+func writeFileFs(afs afero.Fs, path string, data []byte, perm os.FileMode) error {
+	return afero.WriteFile(afs, path, data, perm)
+}
 
 type scenarioWithResult struct {
 	scenario cukesvhs.ScenarioIR
@@ -16,7 +23,7 @@ type scenarioWithResult struct {
 }
 
 func parseAllScenarios(featuresDir, scenariosDir string, errOut io.Writer) ([]cukesvhs.ScenarioIR, error) {
-	if _, err := os.Stat(featuresDir); err != nil {
+	if _, err := cliFs.Stat(featuresDir); err != nil {
 		fmt.Fprintf(errOut, "Error parsing features dir %q: %v\n", featuresDir, err)
 		return nil, err
 	}
@@ -94,12 +101,12 @@ func writeScenarioTape(scenario cukesvhs.ScenarioIR, outputDir, configSourcePath
 		return "", err
 	}
 
-	if err := os.MkdirAll(tapeDir, 0o750); err != nil {
+	if err := cliFs.MkdirAll(tapeDir, 0o750); err != nil {
 		return "", fmt.Errorf("creating output directory %q: %w", tapeDir, err)
 	}
 
 	outPath := filepath.Join(tapeDir, scenarioSlug+".tape")
-	if err := os.WriteFile(outPath, []byte(content), 0o600); err != nil {
+	if err := writeFileFs(cliFs, outPath, []byte(content), 0o600); err != nil {
 		return "", fmt.Errorf("writing tape file %q: %w", outPath, err)
 	}
 
@@ -112,18 +119,22 @@ func writeScenarioTape(scenario cukesvhs.ScenarioIR, outputDir, configSourcePath
 // Returns: slice of absolute .ascii file paths; empty slice when dir is empty or missing; non-nil error on walk failure.
 // Side effects: none.
 func collectOutputASCIIFiles(dir string) ([]string, error) {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
+	exists, err := afero.DirExists(cliFs, dir)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
 		return []string{}, nil
 	}
 
 	var files []string
 
-	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, walkErr error) error {
+	err = afero.Walk(cliFs, dir, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 
-		if !d.IsDir() && strings.HasSuffix(path, ".ascii") {
+		if !info.IsDir() && strings.HasSuffix(path, ".ascii") {
 			files = append(files, path)
 		}
 
@@ -180,12 +191,12 @@ func findASCIIFileForScenario(outputDir, scenarioSlug string) (string, error) {
 
 	var matches []string
 
-	err := filepath.WalkDir(outputDir, func(path string, d os.DirEntry, walkErr error) error {
+	err := afero.Walk(cliFs, outputDir, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 
-		if !d.IsDir() && filepath.Base(path) == targetName {
+		if !info.IsDir() && filepath.Base(path) == targetName {
 			matches = append(matches, path)
 		}
 
@@ -227,4 +238,56 @@ func normaliseArgs(args []string) []string {
 		}
 	}
 	return normalised
+}
+
+type generateStats struct {
+	total        int
+	fromBusiness int
+	fromVHSOnly  int
+	warnings     int
+}
+
+type generateConfig struct {
+	outputDir    string
+	configSource string
+	verbose      bool
+	out          io.Writer
+	errOut       io.Writer
+}
+
+// generateTapes processes filtered scenarios and writes tape files.
+func generateTapes(filtered []scenarioWithResult, cfg generateConfig) generateStats {
+	var stats generateStats
+
+	for i := range filtered {
+		entry := &filtered[i]
+		scenario := entry.scenario
+		result := entry.result
+
+		if !result.Translatable {
+			if cfg.verbose {
+				fmt.Fprintf(cfg.out, "Skipping %q (not translatable)\n", scenario.Name)
+			}
+			stats.warnings++
+			continue
+		}
+
+		outPath, tapeErr := writeScenarioTape(scenario, cfg.outputDir, cfg.configSource)
+		if tapeErr != nil {
+			fmt.Fprintf(cfg.errOut, "Error generating tape for %q: %v\n", scenario.Name, tapeErr)
+			continue
+		}
+
+		fmt.Fprintf(cfg.out, "Written: %s\n", outPath)
+
+		switch scenario.Source {
+		case cukesvhs.SourceBusiness:
+			stats.fromBusiness++
+		case cukesvhs.SourceVHSOnly:
+			stats.fromVHSOnly++
+		}
+	}
+
+	stats.total = stats.fromBusiness + stats.fromVHSOnly
+	return stats
 }
