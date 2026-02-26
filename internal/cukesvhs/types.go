@@ -72,10 +72,8 @@ type ScenarioIR struct {
 // GeneratorConfig holds configuration for the VHS generator.
 type GeneratorConfig struct {
 	OutputDir        string
-	TemplatePath     string
 	ConfigSourcePath string
 	SleepDuration    string
-	ScenariosDir     string
 }
 
 // AnalysisResult represents the result of analysing a scenario.

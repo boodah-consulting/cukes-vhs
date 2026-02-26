@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 # ============================================================================
 # AI Commit Helper
@@ -373,29 +373,35 @@ echo ""
 # Build full commit message with attribution
 FINAL_MSG_FILE=$(mktemp)
 
-cat > "$FINAL_MSG_FILE" << EOF
+cat > "$FINAL_MSG_FILE" <<'EOF'
+${COMMIT_MSG}
+
+AI-Generated-By: ${AGENT_NAME} (${MODEL_NAME})
+Reviewed-By: ${AGENT_NAME} (${MODEL_NAME})
+EOF
 ${COMMIT_MSG}
 
 AI-Generated-By: ${AGENT_NAME} (${MODEL_NAME})
 Reviewed-By: ${AGENT_NAME} (${MODEL_NAME})
 EOF
 
-# Build commit flags
-COMMIT_FLAGS="-F $FINAL_MSG_FILE"
+# Build commit flags array
+COMMIT_FLAGS=()
+COMMIT_FLAGS+=("-F" "$FINAL_MSG_FILE")
 
 # Add --amend flag if in AMEND mode
 if [ "$AMEND" = "1" ]; then
-    COMMIT_FLAGS="$COMMIT_FLAGS --amend"
+    COMMIT_FLAGS+=("--amend")
 fi
 
 # Add --no-verify flag if NO_VERIFY is set
 if [ "$NO_VERIFY" = "1" ]; then
     echo -e "${YELLOW}⚠️  Skipping pre-commit hooks (--no-verify)${NC}"
     echo ""
-    COMMIT_FLAGS="$COMMIT_FLAGS --no-verify"
+    COMMIT_FLAGS+=("--no-verify")
 fi
 
-if git commit $COMMIT_FLAGS; then
+if git commit "${COMMIT_FLAGS[@]}"; then
     echo ""
     if [ "$AMEND" = "1" ]; then
         echo -e "${GREEN}✅ Commit amended successfully${NC}"

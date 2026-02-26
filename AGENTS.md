@@ -79,9 +79,6 @@ import (
 ### Forbidden
 - Comments inside function bodies
 - `TODO`, `FIXME`, `HACK` markers
-- Hardcoded colors (use `theme.Primary()`)
-- Direct `huh.*` (use `forms/` wrappers)
-
 ## Directory Structure
 - `cmd/cukes-vhs/` - CLI entry point and main package.
 - `internal/cukesvhs/` - Core library including the parser, generator, renderer, validator, and templates.

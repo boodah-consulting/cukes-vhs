@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-
+	"io"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -26,6 +26,8 @@ Use --force to overwrite an existing config file.`,
   cukes-vhs init --output my-config/    # Custom output directory
   cukes-vhs init --force                # Overwrite existing config`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			_ = cmd.Context()
+
 			opts := &initOptions{
 				force:     force,
 				outputDir: outputDir,
@@ -41,7 +43,7 @@ Use --force to overwrite an existing config file.`,
 }
 
 // runInit executes the init command.
-func runInit(opts *initOptions, out outputWriter) error {
+func runInit(opts *initOptions, out io.Writer) error {
 	if err := cliFs.MkdirAll(opts.outputDir, 0o750); err != nil {
 		return fmt.Errorf("creating output directory: %w", err)
 	}
@@ -72,13 +74,8 @@ type initOptions struct {
 	outputDir string
 }
 
-// outputWriter is an interface for output writing.
-type outputWriter interface {
-	Write(p []byte) (n int, err error)
-}
-
 // runInitCmd is a legacy wrapper for backward compatibility with tests.
-func runInitCmd(args []string, out outputWriter, errOut outputWriter) int {
+func runInitCmd(args []string, out io.Writer, errOut io.Writer) int {
 	SetWriters(out, errOut)
 	cmd := newInitCmd()
 	cmd.SetArgs(args)
@@ -92,7 +89,7 @@ func runInitCmd(args []string, out outputWriter, errOut outputWriter) int {
 }
 
 // parseInitFlags parses flags for the init command (legacy interface for tests).
-func parseInitFlags(args []string, errOut outputWriter) (*initOptions, error) {
+func parseInitFlags(args []string, errOut io.Writer) (*initOptions, error) {
 	cmd := newInitCmd()
 	cmd.SetArgs(args)
 	cmd.SetOut(errOut)

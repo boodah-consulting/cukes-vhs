@@ -1,12 +1,18 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+
+	"github.com/boodah-consulting/cukes-vhs/internal/cukesvhs"
 )
 
 var (
@@ -31,6 +37,7 @@ func SetWriters(out, errOut io.Writer) {
 // SetFs allows tests to override the filesystem.
 func SetFs(fs afero.Fs) {
 	cliFs = fs
+	cukesvhs.SetDefaultFs(fs)
 }
 
 // NewRootCmd creates the root command for cukes-vhs.
@@ -61,10 +68,13 @@ automated terminal recordings using charmbracelet/vhs.`,
 	return cmd
 }
 
-// Execute runs the root command.
+// Execute runs the root command with signal handling for graceful shutdown.
 func Execute() int {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
 	rootCmd = NewRootCmd()
-	if err := rootCmd.Execute(); err != nil {
+	if err := rootCmd.ExecuteContext(ctx); err != nil {
 		return 1
 	}
 	return 0
@@ -112,7 +122,7 @@ func isFlag(arg string) bool {
 
 // startsWithErrorPrefix checks if the error message already starts with "Error".
 func startsWithErrorPrefix(s string) bool {
-	return len(s) > 5 && s[:5] == "Error"
+	return strings.HasPrefix(s, "Error")
 }
 
 // newCompletionCmd creates the completion command for shell completion scripts.

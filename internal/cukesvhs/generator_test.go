@@ -166,35 +166,27 @@ var _ = Describe("GenerateTape", func() {
 	})
 
 	Describe("forbidden patterns in steps", func() {
-		forbiddenCases := []struct {
-			name    string
-			command string
-		}{
-			{"rm -rf in type arg", "rm -rf /tmp/data"},
-		}
-
-		for _, tc := range forbiddenCases {
-			Context("when a step contains "+tc.name, func() {
-				It("returns an error mentioning forbidden pattern", func() {
-					scenario := cukesvhs.ScenarioIR{
-						Name:    "Dangerous",
-						Feature: "Danger",
-						DemoSteps: []cukesvhs.StepIR{
-							{
-								Text:         "clean up",
-								StepType:     "When",
-								Translatable: true,
-								Commands:     []cukesvhs.VHSCommand{{Type: cukesvhs.Type, Args: []string{tc.command}}},
-							},
+		DescribeTable("forbidden patterns",
+			func(name, command string) {
+				scenario := cukesvhs.ScenarioIR{
+					Name:    "Dangerous",
+					Feature: "Danger",
+					DemoSteps: []cukesvhs.StepIR{
+						{
+							Text:         "clean up",
+							StepType:     "When",
+							Translatable: true,
+							Commands:     []cukesvhs.VHSCommand{{Type: cukesvhs.Type, Args: []string{command}}},
 						},
-					}
+					},
+				}
 
-					_, err := cukesvhs.GenerateTape(scenario, cukesvhs.GeneratorConfig{OutputDir: "out"})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("forbidden pattern"))
-				})
-			})
-		}
+				_, err := cukesvhs.GenerateTape(scenario, cukesvhs.GeneratorConfig{OutputDir: "out"})
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("forbidden pattern"))
+			},
+			Entry("rm -rf in type arg", "rm -rf in type arg", "rm -rf /tmp/data"),
+		)
 
 		It("rejects 'rm -rf' as a security guard", func() {
 			scenario := cukesvhs.ScenarioIR{
@@ -334,82 +326,51 @@ var _ = Describe("GenerateTape", func() {
 	})
 })
 
-var _ = Describe("slugify", func() {
-	slugifyCases := []struct {
-		name  string
-		input string
-		want  string
-	}{
-		{"simple spaces", "Hello World", "hello-world"},
-		{"already slug", "hello-world", "hello-world"},
-		{"special chars", "Hello, World! 123", "hello-world-123"},
-		{"multiple spaces", "hello   world", "hello-world"},
-		{"leading trailing spaces", " hello world ", "hello-world"},
-		{"empty string", "", ""},
-		{"underscores to hyphens", "capture_event", "capture-event"},
-		{"mixed separators", "hello_world test", "hello-world-test"},
-		{"consecutive special chars", "a!!b##c", "abc"},
-		{"only special chars", "!@#$%", ""},
-		{"numbers", "version 2", "version-2"},
-	}
-
-	for _, tc := range slugifyCases {
-		Context("when slugifying "+tc.name, func() {
-			It("produces the expected slug", func() {
-				Expect(cukesvhs.Slugify(tc.input)).To(Equal(tc.want))
-			})
-		})
-	}
+var _ = Describe("Slugify", func() {
+	DescribeTable("slugify transformations",
+		func(input, want string) {
+			Expect(cukesvhs.Slugify(input)).To(Equal(want))
+		},
+		Entry("simple spaces", "Hello World", "hello-world"),
+		Entry("already slug", "hello-world", "hello-world"),
+		Entry("special chars", "Hello, World! 123", "hello-world-123"),
+		Entry("multiple spaces", "hello   world", "hello-world"),
+		Entry("leading trailing spaces", " hello world ", "hello-world"),
+		Entry("empty string", "", ""),
+		Entry("underscores to hyphens", "capture_event", "capture-event"),
+		Entry("mixed separators", "hello_world test", "hello-world-test"),
+		Entry("consecutive special chars", "a!!b##c", "abc"),
+		Entry("only special chars", "!@#$%", ""),
+		Entry("numbers", "version 2", "version-2"),
+	)
 })
 
 var _ = Describe("renderCommand", func() {
-	Describe("commands with no args", func() {
-		noArgCases := []struct {
-			name     string
-			cmd      cukesvhs.VHSCommand
-			expected string
-		}{
-			{"Down key", cukesvhs.VHSCommand{Type: cukesvhs.Down}, "Down"},
-			{"Up key", cukesvhs.VHSCommand{Type: cukesvhs.Up}, "Up"},
-			{"Enter key", cukesvhs.VHSCommand{Type: cukesvhs.Enter}, "Enter"},
-			{"Escape key", cukesvhs.VHSCommand{Type: cukesvhs.Escape}, "Escape"},
-			{"Tab key", cukesvhs.VHSCommand{Type: cukesvhs.Tab}, "Tab"},
-			{"CtrlC", cukesvhs.VHSCommand{Type: cukesvhs.CtrlC}, "Ctrl+C"},
-			{"CtrlE", cukesvhs.VHSCommand{Type: cukesvhs.CtrlE}, "Ctrl+E"},
-			{"CtrlS", cukesvhs.VHSCommand{Type: cukesvhs.CtrlS}, "Ctrl+S"},
-			{"Sleep no args", cukesvhs.VHSCommand{Type: cukesvhs.Sleep}, "Sleep 1s"},
-			{"Type no args", cukesvhs.VHSCommand{Type: cukesvhs.Type}, "Type"},
-		}
+	DescribeTable("commands with no args",
+		func(cmd cukesvhs.VHSCommand, expected string) {
+			Expect(cukesvhs.RenderCommand(cmd)).To(Equal(expected))
+		},
+		Entry("Down key", cukesvhs.VHSCommand{Type: cukesvhs.Down}, "Down"),
+		Entry("Up key", cukesvhs.VHSCommand{Type: cukesvhs.Up}, "Up"),
+		Entry("Enter key", cukesvhs.VHSCommand{Type: cukesvhs.Enter}, "Enter"),
+		Entry("Escape key", cukesvhs.VHSCommand{Type: cukesvhs.Escape}, "Escape"),
+		Entry("Tab key", cukesvhs.VHSCommand{Type: cukesvhs.Tab}, "Tab"),
+		Entry("CtrlC", cukesvhs.VHSCommand{Type: cukesvhs.CtrlC}, "Ctrl+C"),
+		Entry("CtrlE", cukesvhs.VHSCommand{Type: cukesvhs.CtrlE}, "Ctrl+E"),
+		Entry("CtrlS", cukesvhs.VHSCommand{Type: cukesvhs.CtrlS}, "Ctrl+S"),
+		Entry("Sleep no args", cukesvhs.VHSCommand{Type: cukesvhs.Sleep}, "Sleep 1s"),
+		Entry("Type no args", cukesvhs.VHSCommand{Type: cukesvhs.Type}, "Type"),
+	)
 
-		for _, tc := range noArgCases {
-			Context("when rendering "+tc.name, func() {
-				It("renders the expected output", func() {
-					Expect(cukesvhs.RenderCommand(tc.cmd)).To(Equal(tc.expected))
-				})
-			})
-		}
-	})
-
-	Describe("commands with args", func() {
-		withArgCases := []struct {
-			name     string
-			cmd      cukesvhs.VHSCommand
-			expected string
-		}{
-			{"Type with text", cukesvhs.VHSCommand{Type: cukesvhs.Type, Args: []string{"hello"}}, `Type "hello"`},
-			{"Type with speed and text", cukesvhs.VHSCommand{Type: cukesvhs.Type, Args: []string{"100ms", "world"}}, `Type@100ms "world"`},
-			{"Sleep with duration", cukesvhs.VHSCommand{Type: cukesvhs.Sleep, Args: []string{"3s"}}, "Sleep 3s"},
-			{"Generic command with arg", cukesvhs.VHSCommand{Type: "Custom", Args: []string{"arg1"}}, "Custom arg1"},
-		}
-
-		for _, tc := range withArgCases {
-			Context("when rendering "+tc.name, func() {
-				It("renders the expected output", func() {
-					Expect(cukesvhs.RenderCommand(tc.cmd)).To(Equal(tc.expected))
-				})
-			})
-		}
-	})
+	DescribeTable("commands with args",
+		func(cmd cukesvhs.VHSCommand, expected string) {
+			Expect(cukesvhs.RenderCommand(cmd)).To(Equal(expected))
+		},
+		Entry("Type with text", cukesvhs.VHSCommand{Type: cukesvhs.Type, Args: []string{"hello"}}, `Type "hello"`),
+		Entry("Type with speed and text", cukesvhs.VHSCommand{Type: cukesvhs.Type, Args: []string{"100ms", "world"}}, `Type@100ms "world"`),
+		Entry("Sleep with duration", cukesvhs.VHSCommand{Type: cukesvhs.Sleep, Args: []string{"3s"}}, "Sleep 3s"),
+		Entry("Generic command with arg", cukesvhs.VHSCommand{Type: "Custom", Args: []string{"arg1"}}, "Custom arg1"),
+	)
 })
 
 var _ = Describe("WriteTape", func() {

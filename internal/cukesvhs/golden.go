@@ -147,7 +147,10 @@ func ListBaselinesFs(afs afero.Fs, goldenDir string) ([]BaselineInfo, error) {
 			return nil, fmt.Errorf("stat baseline for %q: %w", entry.Name(), statErr)
 		}
 
-		gifExists, _ := afero.Exists(afs, gif)
+		gifExists, err := afero.Exists(afs, gif)
+		if err != nil {
+			return nil, fmt.Errorf("stat baseline for %q: %w", entry.Name(), err)
+		}
 		if !gifExists {
 			continue
 		}
@@ -185,8 +188,6 @@ func copyFileFs(afs afero.Fs, src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("creating destination %q: %w", dst, err)
 	}
-	defer func() { _ = out.Close() }()
-
 	if _, err := io.Copy(out, in); err != nil {
 		return fmt.Errorf("copying %q to %q: %w", src, dst, err)
 	}

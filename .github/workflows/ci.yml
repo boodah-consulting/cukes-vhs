@@ -48,7 +48,7 @@ jobs:
       - name: Run go vet
         run: go vet ./...
       - name: Install staticcheck
-        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+        run: go install honnef.co/go/tools/cmd/staticcheck@v0.5.1
       - name: Run staticcheck
         run: staticcheck ./...
 
@@ -73,7 +73,7 @@ jobs:
         run: ginkgo -v --race --cover --coverprofile=coverage.out ./...
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457  # v3
         with:
           files: ./coverage.out
           flags: unittests

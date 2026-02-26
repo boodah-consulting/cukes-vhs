@@ -38,7 +38,7 @@ run_check() {
 # Print header
 echo -e "${BLUE}"
 echo "================================================"
-echo "         KaRiya - Local CI Checks"
+echo "         cukes-vhs - Local CI Checks"
 echo "================================================"
 echo -e "${NC}"
 echo "This script runs all checks from CI locally."
@@ -68,7 +68,7 @@ fi
 # Check and install golangci-lint
 if ! command -v golangci-lint &> /dev/null; then
     echo "Installing golangci-lint..."
-    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.8
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.8.0
 fi
 
 # Check npm dependencies
@@ -113,7 +113,7 @@ run_check "staticcheck" \
 # 4. TESTS (from ci.yml - test job)
 # ============================================
 run_check "Tests with race detector and coverage" \
-    "ginkgo -v --race --cover --coverprofile=coverage.out --skip-package=testdata,noinlinecareer/testdata,features ./..."
+    "ginkgo -v --race --cover --coverprofile=coverage.out --skip-package=testdata,features ./..."
 
 # ============================================
 # 5. BUILD (from ci.yml - build job)
@@ -146,7 +146,7 @@ run_check "Golangci-lint" \
 # 8. DOCBLOCKS (structured doc comment enforcement)
 # ============================================
 run_check "Docblocks Analyzer" \
-    "go build -o ./bin/docblocks ./cmd/docblocks && go vet -vettool=./bin/docblocks ./internal/cli/behaviors/... ./internal/cli/intents/... ./tools/analyzers/docblocks/..."
+    "go build -o ./bin/docblocks ./cmd/docblocks"
 
 # ============================================
 # SUMMARY

@@ -2,8 +2,9 @@
 package main
 
 import (
-	"github.com/boodah-consulting/cukes-vhs/tools/analyzers/docblocks"
 	"golang.org/x/tools/go/analysis/singlechecker"
+
+	"github.com/boodah-consulting/cukes-vhs/tools/analyzers/docblocks"
 )
 
 func main() {

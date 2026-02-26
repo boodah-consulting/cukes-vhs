@@ -4,11 +4,18 @@ import (
 	"embed"
 	"fmt"
 	"strings"
+	"sync"
 	"text/template"
 )
 
 //go:embed templates/base.tape.tmpl
 var templateFS embed.FS
+
+var (
+	parsedTemplate *template.Template
+	templateParsed sync.Once
+	templateErr    error
+)
 
 // TapeData holds the data for rendering a VHS tape template.
 type TapeData struct {
@@ -26,18 +33,25 @@ type TapeData struct {
 // Returns: Rendered tape content as string, or error if template rendering fails.
 // Side effects: None.
 func RenderTape(data TapeData) (string, error) {
-	tmplContent, err := templateFS.ReadFile("templates/base.tape.tmpl")
-	if err != nil {
-		return "", fmt.Errorf("reading template: %w", err)
-	}
+	templateParsed.Do(func() {
+		tmplContent, err := templateFS.ReadFile("templates/base.tape.tmpl")
+		if err != nil {
+			templateErr = fmt.Errorf("reading template: %w", err)
+			return
+		}
 
-	tmpl, err := template.New("base.tape").Parse(string(tmplContent))
-	if err != nil {
-		return "", fmt.Errorf("parsing template: %w", err)
+		parsedTemplate, err = template.New("base.tape").Parse(string(tmplContent))
+		if err != nil {
+			templateErr = fmt.Errorf("parsing template: %w", err)
+		}
+	})
+
+	if templateErr != nil {
+		return "", templateErr
 	}
 
 	var buf strings.Builder
-	if err := tmpl.Execute(&buf, data); err != nil {
+	if err := parsedTemplate.Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("executing template: %w", err)
 	}
 

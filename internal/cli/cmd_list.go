@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -32,6 +33,8 @@ source (business or VHS-only), and whether it can be translated to VHS commands.
   cukes-vhs list --steps
   cukes-vhs list --steps --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			_ = cmd.Context()
+
 			out := cmd.OutOrStdout()
 			errOut := cmd.ErrOrStderr()
 
@@ -80,13 +83,12 @@ source (business or VHS-only), and whether it can be translated to VHS commands.
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output as JSON")
 	cmd.Flags().BoolVar(&showCount, "count", false, "Show counts broken down by source")
 	cmd.Flags().BoolVar(&showSteps, "steps", false, "Show translatable step patterns")
-	cmd.Flags().Bool("all", false, "List all scenarios (default behaviour)")
 
 	return cmd
 }
 
 // runListStepsCmd outputs the translatable step patterns.
-func runListStepsCmd(asJSON bool, out outputWriter) error {
+func runListStepsCmd(asJSON bool, out io.Writer) error {
 	patterns := cukesvhs.ListTranslatablePatterns()
 
 	if asJSON {
@@ -142,7 +144,7 @@ func runListStepsCmd(asJSON bool, out outputWriter) error {
 }
 
 // runListCountCmd outputs counts by source.
-func runListCountCmd(results []cukesvhs.AnalysisResult, out outputWriter) error {
+func runListCountCmd(results []cukesvhs.AnalysisResult, out io.Writer) error {
 	var (
 		businessTotal        int
 		businessTranslatable int
@@ -175,7 +177,7 @@ func runListCountCmd(results []cukesvhs.AnalysisResult, out outputWriter) error 
 }
 
 // runListJSONCmd outputs the analysis results as JSON.
-func runListJSONCmd(results []cukesvhs.AnalysisResult, out outputWriter, errOut outputWriter) error {
+func runListJSONCmd(results []cukesvhs.AnalysisResult, out io.Writer, errOut io.Writer) error {
 	type jsonScenario struct {
 		ScenarioName string `json:"scenario_name"`
 		Feature      string `json:"feature"`
@@ -220,7 +222,7 @@ func runListJSONCmd(results []cukesvhs.AnalysisResult, out outputWriter, errOut 
 }
 
 // runListTableCmd outputs the analysis results as a formatted table.
-func runListTableCmd(results []cukesvhs.AnalysisResult, out outputWriter) error {
+func runListTableCmd(results []cukesvhs.AnalysisResult, out io.Writer) error {
 	colScenario := 40
 	colFeature := 25
 	colSource := 10
@@ -268,14 +270,14 @@ func runListTableCmd(results []cukesvhs.AnalysisResult, out outputWriter) error 
 
 // Legacy wrappers for backward compatibility with tests
 
-func runListCount(results []cukesvhs.AnalysisResult, out outputWriter) int {
+func runListCount(results []cukesvhs.AnalysisResult, out io.Writer) int {
 	if err := runListCountCmd(results, out); err != nil {
 		return 1
 	}
 	return 0
 }
 
-func runListJSON(results []cukesvhs.AnalysisResult, out outputWriter, errOut outputWriter) int {
+func runListJSON(results []cukesvhs.AnalysisResult, out io.Writer, errOut io.Writer) int {
 	if err := runListJSONCmd(results, out, errOut); err != nil {
 		return 1
 	}

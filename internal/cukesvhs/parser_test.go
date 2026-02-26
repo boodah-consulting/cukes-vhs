@@ -223,8 +223,8 @@ var _ = Describe("ParseFeatureDir", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("produces exactly 1 scenario (first row only)", func() {
-				Expect(results).To(HaveLen(1))
+			It("produces exactly 2 scenarios (one per example row)", func() {
+				Expect(results).To(HaveLen(2))
 			})
 
 			It("preserves the scenario name", func() {
@@ -287,18 +287,21 @@ var _ = Describe("ParseFeatureDir", func() {
 
 				results, err := cukesvhs.ParseFeatureDir(dir, cukesvhs.SourceBusiness)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(results).To(HaveLen(1))
+				Expect(results).To(HaveLen(2))
 
 				ir := results[0]
 				Expect(ir.SetupSteps).To(HaveLen(1))
 				Expect(ir.SetupSteps[0].Text).To(Equal("I am on the main menu"))
 				Expect(ir.DemoSteps).To(HaveLen(1))
 				Expect(ir.DemoSteps[0].Text).To(ContainSubstring("hello"))
+
+				ir2 := results[1]
+				Expect(ir2.DemoSteps[0].Text).To(ContainSubstring("world"))
 			})
 		})
 
 		Context("outline with multiple substitution columns", func() {
-			It("uses the first example row values", func() {
+			It("uses all example row values", func() {
 				dir := GinkgoT().TempDir()
 				content := `Feature: Substitution Test
   Scenario Outline: Test with examples
@@ -316,10 +319,13 @@ var _ = Describe("ParseFeatureDir", func() {
 
 				results, err := cukesvhs.ParseFeatureDir(dir, cukesvhs.SourceBusiness)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(results).To(HaveLen(1))
+				Expect(results).To(HaveLen(2))
 
 				Expect(results[0].SetupSteps[0].Text).To(ContainSubstring("5"))
 				Expect(results[0].DemoSteps[0].Text).To(ContainSubstring("one"))
+
+				Expect(results[1].SetupSteps[0].Text).To(ContainSubstring("10"))
+				Expect(results[1].DemoSteps[0].Text).To(ContainSubstring("two"))
 			})
 		})
 	})

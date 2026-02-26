@@ -50,6 +50,7 @@ and validates the output against golden baselines.`,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			_ = cmd.Context()
 			out := cmd.OutOrStdout()
 			errOut := cmd.ErrOrStderr()
 
@@ -79,7 +80,9 @@ and validates the output against golden baselines.`,
 			}
 
 			fmt.Fprintf(out, "Generating...\n")
-			generateTapes(translatableFiltered, genCfg)
+			stats := generateTapes(translatableFiltered, genCfg)
+			fmt.Fprintf(out, "Generated %d tape(s): %d from business features, %d from VHS-only scenarios\n",
+				stats.total, stats.fromBusiness, stats.fromVHSOnly)
 
 			exitCode := renderAndValidate(out, errOut, outputDir, goldenDir, timeoutSec, binaryPath)
 			if exitCode != 0 {
@@ -153,13 +156,6 @@ func parseRunFlags(args []string, errOut io.Writer) (*runOptions, error) {
 	*opts.timeoutSec, _ = cmd.Flags().GetInt("timeout")
 	*opts.configSource, _ = cmd.Flags().GetString("config-source")
 	*opts.binaryPath, _ = cmd.Flags().GetString("binary-path")
-
-	for _, arg := range args {
-		if arg == "all" || arg == "--all" {
-			*opts.runAll = true
-			break
-		}
-	}
 
 	if *opts.outputDir == "" {
 		fmt.Fprintf(errOut, "Error: --output is required\n")

@@ -8,153 +8,78 @@ import (
 )
 
 var _ = Describe("Types", func() {
-	Describe("SourceType constants", func() {
-		It("defines SourceBusiness as 'business'", func() {
-			Expect(cukesvhs.SourceBusiness).To(Equal(cukesvhs.SourceType("business")))
-		})
-
-		It("defines SourceVHSOnly as 'vhs-only'", func() {
-			Expect(cukesvhs.SourceVHSOnly).To(Equal(cukesvhs.SourceType("vhs-only")))
-		})
+	It("defines source type constants", func() {
+		Expect(cukesvhs.SourceBusiness).To(Equal(cukesvhs.SourceType("business")))
+		Expect(cukesvhs.SourceVHSOnly).To(Equal(cukesvhs.SourceType("vhs-only")))
 	})
 
-	Describe("VHSCommandType constants", func() {
-		It("defines Type command", func() {
-			Expect(cukesvhs.Type).To(Equal(cukesvhs.VHSCommandType("Type")))
-		})
-
-		It("defines Down command", func() {
-			Expect(cukesvhs.Down).To(Equal(cukesvhs.VHSCommandType("Down")))
-		})
-
-		It("defines Up command", func() {
-			Expect(cukesvhs.Up).To(Equal(cukesvhs.VHSCommandType("Up")))
-		})
-
-		It("defines Enter command", func() {
-			Expect(cukesvhs.Enter).To(Equal(cukesvhs.VHSCommandType("Enter")))
-		})
-
-		It("defines Escape command", func() {
-			Expect(cukesvhs.Escape).To(Equal(cukesvhs.VHSCommandType("Escape")))
-		})
-
-		It("defines Tab command", func() {
-			Expect(cukesvhs.Tab).To(Equal(cukesvhs.VHSCommandType("Tab")))
-		})
-
-		It("defines Sleep command", func() {
-			Expect(cukesvhs.Sleep).To(Equal(cukesvhs.VHSCommandType("Sleep")))
-		})
-
-		It("defines Hide command", func() {
-			Expect(cukesvhs.Hide).To(Equal(cukesvhs.VHSCommandType("Hide")))
-		})
-
-		It("defines Show command", func() {
-			Expect(cukesvhs.Show).To(Equal(cukesvhs.VHSCommandType("Show")))
-		})
-
-		It("defines Screenshot command", func() {
-			Expect(cukesvhs.Screenshot).To(Equal(cukesvhs.VHSCommandType("Screenshot")))
-		})
-
-		It("defines Source command", func() {
-			Expect(cukesvhs.Source).To(Equal(cukesvhs.VHSCommandType("Source")))
-		})
-
-		It("defines Output command", func() {
-			Expect(cukesvhs.Output).To(Equal(cukesvhs.VHSCommandType("Output")))
-		})
-
-		It("defines CtrlC command", func() {
-			Expect(cukesvhs.CtrlC).To(Equal(cukesvhs.VHSCommandType("Ctrl+C")))
-		})
+	It("defines VHS command type constants", func() {
+		Expect(cukesvhs.Type).To(Equal(cukesvhs.VHSCommandType("Type")))
+		Expect(cukesvhs.Down).To(Equal(cukesvhs.VHSCommandType("Down")))
+		Expect(cukesvhs.Up).To(Equal(cukesvhs.VHSCommandType("Up")))
+		Expect(cukesvhs.Enter).To(Equal(cukesvhs.VHSCommandType("Enter")))
+		Expect(cukesvhs.Escape).To(Equal(cukesvhs.VHSCommandType("Escape")))
+		Expect(cukesvhs.Tab).To(Equal(cukesvhs.VHSCommandType("Tab")))
+		Expect(cukesvhs.Sleep).To(Equal(cukesvhs.VHSCommandType("Sleep")))
+		Expect(cukesvhs.Hide).To(Equal(cukesvhs.VHSCommandType("Hide")))
+		Expect(cukesvhs.Show).To(Equal(cukesvhs.VHSCommandType("Show")))
+		Expect(cukesvhs.Screenshot).To(Equal(cukesvhs.VHSCommandType("Screenshot")))
+		Expect(cukesvhs.Source).To(Equal(cukesvhs.VHSCommandType("Source")))
+		Expect(cukesvhs.Output).To(Equal(cukesvhs.VHSCommandType("Output")))
+		Expect(cukesvhs.CtrlC).To(Equal(cukesvhs.VHSCommandType("Ctrl+C")))
 	})
 
-	Describe("VHSCommand construction", func() {
-		Context("when constructed with Type and text args", func() {
-			It("stores the correct type and args", func() {
-				cmd := cukesvhs.VHSCommand{Type: cukesvhs.Type, Args: []string{"hello"}}
-				Expect(cmd.Type).To(Equal(cukesvhs.Type))
-				Expect(cmd.Args).To(Equal([]string{"hello"}))
-			})
-		})
+	It("constructs VHSCommand with various configurations", func() {
+		cmdWithArgs := cukesvhs.VHSCommand{Type: cukesvhs.Type, Args: []string{"hello"}}
+		Expect(cmdWithArgs.Type).To(Equal(cukesvhs.Type))
+		Expect(cmdWithArgs.Args).To(Equal([]string{"hello"}))
 
-		Context("when constructed with Sleep and duration", func() {
-			It("stores the correct type and args", func() {
-				cmd := cukesvhs.VHSCommand{Type: cukesvhs.Sleep, Args: []string{"500ms"}}
-				Expect(cmd.Type).To(Equal(cukesvhs.Sleep))
-				Expect(cmd.Args).To(Equal([]string{"500ms"}))
-			})
-		})
+		cmdSleep := cukesvhs.VHSCommand{Type: cukesvhs.Sleep, Args: []string{"500ms"}}
+		Expect(cmdSleep.Type).To(Equal(cukesvhs.Sleep))
+		Expect(cmdSleep.Args).To(Equal([]string{"500ms"}))
 
-		Context("when constructed with Screenshot and path", func() {
-			It("stores the correct type and args", func() {
-				cmd := cukesvhs.VHSCommand{Type: cukesvhs.Screenshot, Args: []string{"output.png"}}
-				Expect(cmd.Type).To(Equal(cukesvhs.Screenshot))
-				Expect(cmd.Args).To(Equal([]string{"output.png"}))
-			})
-		})
+		cmdScreenshot := cukesvhs.VHSCommand{Type: cukesvhs.Screenshot, Args: []string{"output.png"}}
+		Expect(cmdScreenshot.Type).To(Equal(cukesvhs.Screenshot))
+		Expect(cmdScreenshot.Args).To(Equal([]string{"output.png"}))
 
-		Context("when constructed with no args", func() {
-			It("has nil args", func() {
-				cmd := cukesvhs.VHSCommand{Type: cukesvhs.Enter}
-				Expect(cmd.Type).To(Equal(cukesvhs.Enter))
-				Expect(cmd.Args).To(BeNil())
-			})
-		})
+		cmdNoArgs := cukesvhs.VHSCommand{Type: cukesvhs.Enter}
+		Expect(cmdNoArgs.Type).To(Equal(cukesvhs.Enter))
+		Expect(cmdNoArgs.Args).To(BeNil())
 	})
 
-	Describe("StepIR construction", func() {
-		Context("Given step", func() {
-			It("stores text and step type", func() {
-				step := cukesvhs.StepIR{
-					Text:         "a user is logged in",
-					StepType:     "Given",
-					Translatable: true,
-				}
-				Expect(step.Text).To(Equal("a user is logged in"))
-				Expect(step.StepType).To(Equal("Given"))
-			})
-		})
+	It("constructs StepIR with different step types", func() {
+		givenStep := cukesvhs.StepIR{
+			Text:         "a user is logged in",
+			StepType:     "Given",
+			Translatable: true,
+		}
+		Expect(givenStep.Text).To(Equal("a user is logged in"))
+		Expect(givenStep.StepType).To(Equal("Given"))
 
-		Context("When step", func() {
-			It("stores text and step type", func() {
-				step := cukesvhs.StepIR{
-					Text:         "the user clicks the button",
-					StepType:     "When",
-					Translatable: true,
-				}
-				Expect(step.Text).To(Equal("the user clicks the button"))
-				Expect(step.StepType).To(Equal("When"))
-			})
-		})
+		whenStep := cukesvhs.StepIR{
+			Text:         "the user clicks the button",
+			StepType:     "When",
+			Translatable: true,
+		}
+		Expect(whenStep.Text).To(Equal("the user clicks the button"))
+		Expect(whenStep.StepType).To(Equal("When"))
 
-		Context("Then step", func() {
-			It("stores text and step type", func() {
-				step := cukesvhs.StepIR{
-					Text:         "the page should display success",
-					StepType:     "Then",
-					Translatable: true,
-				}
-				Expect(step.Text).To(Equal("the page should display success"))
-				Expect(step.StepType).To(Equal("Then"))
-			})
-		})
+		thenStep := cukesvhs.StepIR{
+			Text:         "the page should display success",
+			StepType:     "Then",
+			Translatable: true,
+		}
+		Expect(thenStep.Text).To(Equal("the page should display success"))
+		Expect(thenStep.StepType).To(Equal("Then"))
 
-		Context("untranslatable step", func() {
-			It("stores the untranslatable reason", func() {
-				step := cukesvhs.StepIR{
-					Text:                 "some complex step",
-					StepType:             "When",
-					Translatable:         false,
-					UntranslatableReason: "no matching pattern",
-				}
-				Expect(step.Text).To(Equal("some complex step"))
-				Expect(step.StepType).To(Equal("When"))
-			})
-		})
+		untranslatableStep := cukesvhs.StepIR{
+			Text:                 "some complex step",
+			StepType:             "When",
+			Translatable:         false,
+			UntranslatableReason: "no matching pattern",
+		}
+		Expect(untranslatableStep.Text).To(Equal("some complex step"))
+		Expect(untranslatableStep.StepType).To(Equal("When"))
 	})
 
 	Describe("StepIR with commands", func() {
@@ -174,267 +99,143 @@ var _ = Describe("Types", func() {
 		})
 	})
 
-	Describe("ScenarioIR construction", func() {
+	It("constructs ScenarioIR with all fields", func() {
+		scenario := cukesvhs.ScenarioIR{
+			Name:    "User login",
+			Feature: "Authentication",
+			Tags:    []string{"@critical", "@smoke"},
+			Source:  cukesvhs.SourceBusiness,
+			SetupSteps: []cukesvhs.StepIR{
+				{Text: "setup step", StepType: "Given", Translatable: true},
+			},
+			DemoSteps: []cukesvhs.StepIR{
+				{Text: "demo step", StepType: "When", Translatable: true},
+			},
+			Translatable: true,
+		}
+
+		Expect(scenario.Name).To(Equal("User login"))
+		Expect(scenario.Feature).To(Equal("Authentication"))
+		Expect(scenario.Source).To(Equal(cukesvhs.SourceBusiness))
+		Expect(scenario.Tags).To(HaveLen(2))
+		Expect(scenario.SetupSteps).To(HaveLen(1))
+		Expect(scenario.DemoSteps).To(HaveLen(1))
+	})
+
+	It("accepts different source types", func() {
+		businessScenario := cukesvhs.ScenarioIR{Name: "Test scenario", Source: cukesvhs.SourceBusiness}
+		Expect(businessScenario.Source).To(Equal(cukesvhs.SourceBusiness))
+
+		vhsScenario := cukesvhs.ScenarioIR{Name: "Test scenario", Source: cukesvhs.SourceVHSOnly}
+		Expect(vhsScenario.Source).To(Equal(cukesvhs.SourceVHSOnly))
+	})
+
+	It("constructs GeneratorConfig with all fields", func() {
+		config := cukesvhs.GeneratorConfig{
+			OutputDir:        "/tmp/output",
+			ConfigSourcePath: "demos/vhs/config.tape",
+			SleepDuration:    "500ms",
+		}
+
+		Expect(config.OutputDir).To(Equal("/tmp/output"))
+		Expect(config.ConfigSourcePath).To(Equal("demos/vhs/config.tape"))
+		Expect(config.SleepDuration).To(Equal("500ms"))
+	})
+
+	It("constructs AnalysisResult with all fields", func() {
+		result := cukesvhs.AnalysisResult{
+			ScenarioName: "Login flow",
+			Feature:      "Authentication",
+			Translatable: true,
+			Source:       cukesvhs.SourceBusiness,
+			Warnings:     []string{"slow step detected"},
+			Errors:       []string{},
+		}
+
+		Expect(result.ScenarioName).To(Equal("Login flow"))
+		Expect(result.Feature).To(Equal("Authentication"))
+		Expect(result.Translatable).To(BeTrue())
+		Expect(result.Source).To(Equal(cukesvhs.SourceBusiness))
+		Expect(result.Warnings).To(HaveLen(1))
+		Expect(result.Errors).To(BeEmpty())
+	})
+
+	It("constructs AnalysisResult with untranslatable steps", func() {
+		untranslatableStep := cukesvhs.StepIR{
+			Text:                 "complex step",
+			StepType:             "When",
+			Translatable:         false,
+			UntranslatableReason: "no pattern match",
+		}
+		result := cukesvhs.AnalysisResult{
+			ScenarioName:        "Complex scenario",
+			Feature:             "Advanced",
+			Translatable:        false,
+			UntranslatableSteps: []cukesvhs.StepIR{untranslatableStep},
+			Source:              cukesvhs.SourceVHSOnly,
+			Errors:              []string{"cannot translate scenario"},
+		}
+
+		Expect(result.Translatable).To(BeFalse())
+		Expect(result.UntranslatableSteps).To(HaveLen(1))
+		Expect(result.UntranslatableSteps[0].Text).To(Equal("complex step"))
+	})
+
+	It("constructs ParamConstraint", func() {
+		constraint := cukesvhs.ParamConstraint{
+			Type:   "enum",
+			Values: []string{"value1", "value2", "value3"},
+		}
+
+		Expect(constraint.Type).To(Equal("enum"))
+		Expect(constraint.Values).To(HaveLen(3))
+		Expect(constraint.Values[0]).To(Equal("value1"))
+	})
+
+	It("constructs StepPattern", func() {
+		pattern := cukesvhs.StepPattern{
+			Pattern:  `the user types "([^"]+)"`,
+			Type:     "When",
+			Category: "input",
+			Params: map[string]cukesvhs.ParamConstraint{
+				"text": {Type: "string", Values: nil},
+			},
+			Example: `the user types "hello"`,
+		}
+
+		Expect(pattern.Pattern).To(Equal(`the user types "([^"]+)"`))
+		Expect(pattern.Type).To(Equal("When"))
+		Expect(pattern.Category).To(Equal("input"))
+		Expect(pattern.Params).To(HaveLen(1))
+		Expect(pattern.Example).To(Equal(`the user types "hello"`))
+	})
+
+	It("has sensible zero values for all types", func() {
+		var cmd cukesvhs.VHSCommand
+		Expect(string(cmd.Type)).To(BeEmpty())
+		Expect(cmd.Args).To(BeNil())
+
+		var step cukesvhs.StepIR
+		Expect(step.Text).To(BeEmpty())
+		Expect(step.Translatable).To(BeFalse())
+
 		var scenario cukesvhs.ScenarioIR
+		Expect(scenario.Name).To(BeEmpty())
+		Expect(string(scenario.Source)).To(BeEmpty())
 
-		BeforeEach(func() {
-			scenario = cukesvhs.ScenarioIR{
-				Name:    "User login",
-				Feature: "Authentication",
-				Tags:    []string{"@critical", "@smoke"},
-				Source:  cukesvhs.SourceBusiness,
-				SetupSteps: []cukesvhs.StepIR{
-					{Text: "setup step", StepType: "Given", Translatable: true},
-				},
-				DemoSteps: []cukesvhs.StepIR{
-					{Text: "demo step", StepType: "When", Translatable: true},
-				},
-				Translatable: true,
-			}
-		})
-
-		It("stores the name", func() {
-			Expect(scenario.Name).To(Equal("User login"))
-		})
-
-		It("stores the feature", func() {
-			Expect(scenario.Feature).To(Equal("Authentication"))
-		})
-
-		It("stores the source", func() {
-			Expect(scenario.Source).To(Equal(cukesvhs.SourceBusiness))
-		})
-
-		It("stores 2 tags", func() {
-			Expect(scenario.Tags).To(HaveLen(2))
-		})
-
-		It("stores 1 setup step", func() {
-			Expect(scenario.SetupSteps).To(HaveLen(1))
-		})
-
-		It("stores 1 demo step", func() {
-			Expect(scenario.DemoSteps).To(HaveLen(1))
-		})
-	})
-
-	Describe("ScenarioIR source types", func() {
-		It("accepts SourceBusiness", func() {
-			scenario := cukesvhs.ScenarioIR{Name: "Test scenario", Source: cukesvhs.SourceBusiness}
-			Expect(scenario.Source).To(Equal(cukesvhs.SourceBusiness))
-		})
-
-		It("accepts SourceVHSOnly", func() {
-			scenario := cukesvhs.ScenarioIR{Name: "Test scenario", Source: cukesvhs.SourceVHSOnly}
-			Expect(scenario.Source).To(Equal(cukesvhs.SourceVHSOnly))
-		})
-	})
-
-	Describe("GeneratorConfig construction", func() {
 		var config cukesvhs.GeneratorConfig
+		Expect(config.OutputDir).To(BeEmpty())
 
-		BeforeEach(func() {
-			config = cukesvhs.GeneratorConfig{
-				OutputDir:        "/tmp/output",
-				TemplatePath:     "/path/to/template.tape",
-				ConfigSourcePath: "demos/vhs/config.tape",
-				SleepDuration:    "500ms",
-				ScenariosDir:     "features/",
-			}
-		})
-
-		It("stores OutputDir", func() {
-			Expect(config.OutputDir).To(Equal("/tmp/output"))
-		})
-
-		It("stores TemplatePath", func() {
-			Expect(config.TemplatePath).To(Equal("/path/to/template.tape"))
-		})
-
-		It("stores ConfigSourcePath", func() {
-			Expect(config.ConfigSourcePath).To(Equal("demos/vhs/config.tape"))
-		})
-
-		It("stores SleepDuration", func() {
-			Expect(config.SleepDuration).To(Equal("500ms"))
-		})
-
-		It("stores ScenariosDir", func() {
-			Expect(config.ScenariosDir).To(Equal("features/"))
-		})
-	})
-
-	Describe("AnalysisResult construction", func() {
 		var result cukesvhs.AnalysisResult
+		Expect(result.ScenarioName).To(BeEmpty())
+		Expect(result.Translatable).To(BeFalse())
 
-		BeforeEach(func() {
-			result = cukesvhs.AnalysisResult{
-				ScenarioName: "Login flow",
-				Feature:      "Authentication",
-				Translatable: true,
-				Source:       cukesvhs.SourceBusiness,
-				Warnings:     []string{"slow step detected"},
-				Errors:       []string{},
-			}
-		})
-
-		It("stores ScenarioName", func() {
-			Expect(result.ScenarioName).To(Equal("Login flow"))
-		})
-
-		It("stores Feature", func() {
-			Expect(result.Feature).To(Equal("Authentication"))
-		})
-
-		It("is translatable", func() {
-			Expect(result.Translatable).To(BeTrue())
-		})
-
-		It("stores Source", func() {
-			Expect(result.Source).To(Equal(cukesvhs.SourceBusiness))
-		})
-
-		It("has 1 warning", func() {
-			Expect(result.Warnings).To(HaveLen(1))
-		})
-
-		It("has 0 errors", func() {
-			Expect(result.Errors).To(BeEmpty())
-		})
-	})
-
-	Describe("AnalysisResult with untranslatable steps", func() {
-		var result cukesvhs.AnalysisResult
-
-		BeforeEach(func() {
-			untranslatableStep := cukesvhs.StepIR{
-				Text:                 "complex step",
-				StepType:             "When",
-				Translatable:         false,
-				UntranslatableReason: "no pattern match",
-			}
-			result = cukesvhs.AnalysisResult{
-				ScenarioName:        "Complex scenario",
-				Feature:             "Advanced",
-				Translatable:        false,
-				UntranslatableSteps: []cukesvhs.StepIR{untranslatableStep},
-				Source:              cukesvhs.SourceVHSOnly,
-				Errors:              []string{"cannot translate scenario"},
-			}
-		})
-
-		It("is not translatable", func() {
-			Expect(result.Translatable).To(BeFalse())
-		})
-
-		It("has 1 untranslatable step", func() {
-			Expect(result.UntranslatableSteps).To(HaveLen(1))
-		})
-
-		It("preserves the step text", func() {
-			Expect(result.UntranslatableSteps[0].Text).To(Equal("complex step"))
-		})
-	})
-
-	Describe("ParamConstraint construction", func() {
 		var constraint cukesvhs.ParamConstraint
+		Expect(constraint.Type).To(BeEmpty())
 
-		BeforeEach(func() {
-			constraint = cukesvhs.ParamConstraint{
-				Type:   "enum",
-				Values: []string{"value1", "value2", "value3"},
-			}
-		})
-
-		It("stores the type", func() {
-			Expect(constraint.Type).To(Equal("enum"))
-		})
-
-		It("stores 3 values", func() {
-			Expect(constraint.Values).To(HaveLen(3))
-		})
-
-		It("stores the first value correctly", func() {
-			Expect(constraint.Values[0]).To(Equal("value1"))
-		})
-	})
-
-	Describe("StepPattern construction", func() {
 		var pattern cukesvhs.StepPattern
-
-		BeforeEach(func() {
-			pattern = cukesvhs.StepPattern{
-				Pattern:  `the user types "([^"]+)"`,
-				Type:     "When",
-				Category: "input",
-				Params: map[string]cukesvhs.ParamConstraint{
-					"text": {Type: "string", Values: nil},
-				},
-				Example: `the user types "hello"`,
-			}
-		})
-
-		It("stores Pattern", func() {
-			Expect(pattern.Pattern).To(Equal(`the user types "([^"]+)"`))
-		})
-
-		It("stores Type", func() {
-			Expect(pattern.Type).To(Equal("When"))
-		})
-
-		It("stores Category", func() {
-			Expect(pattern.Category).To(Equal("input"))
-		})
-
-		It("stores 1 param", func() {
-			Expect(pattern.Params).To(HaveLen(1))
-		})
-
-		It("stores Example", func() {
-			Expect(pattern.Example).To(Equal(`the user types "hello"`))
-		})
-	})
-
-	Describe("Zero values", func() {
-		It("VHSCommand zero value has empty type and nil args", func() {
-			var cmd cukesvhs.VHSCommand
-			Expect(string(cmd.Type)).To(BeEmpty())
-			Expect(cmd.Args).To(BeNil())
-		})
-
-		It("StepIR zero value has empty text and false translatable", func() {
-			var step cukesvhs.StepIR
-			Expect(step.Text).To(BeEmpty())
-			Expect(step.Translatable).To(BeFalse())
-		})
-
-		It("ScenarioIR zero value has empty name and empty source", func() {
-			var scenario cukesvhs.ScenarioIR
-			Expect(scenario.Name).To(BeEmpty())
-			Expect(string(scenario.Source)).To(BeEmpty())
-		})
-
-		It("GeneratorConfig zero value has empty OutputDir", func() {
-			var config cukesvhs.GeneratorConfig
-			Expect(config.OutputDir).To(BeEmpty())
-		})
-
-		It("AnalysisResult zero value has empty ScenarioName and false translatable", func() {
-			var result cukesvhs.AnalysisResult
-			Expect(result.ScenarioName).To(BeEmpty())
-			Expect(result.Translatable).To(BeFalse())
-		})
-
-		It("ParamConstraint zero value has empty type", func() {
-			var constraint cukesvhs.ParamConstraint
-			Expect(constraint.Type).To(BeEmpty())
-		})
-
-		It("StepPattern zero value has empty pattern and nil params", func() {
-			var pattern cukesvhs.StepPattern
-			Expect(pattern.Pattern).To(BeEmpty())
-			Expect(pattern.Params).To(BeNil())
-		})
+		Expect(pattern.Pattern).To(BeEmpty())
+		Expect(pattern.Params).To(BeNil())
 	})
 
 	Describe("Empty slices", func() {

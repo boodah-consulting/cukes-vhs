@@ -23,9 +23,9 @@ func skipIfNoVHS() {
 	}
 }
 
-func skipIfWindows() {
+func skipIfWindows(reason string) {
 	if runtime.GOOS == "windows" {
-		Skip("file permission tests not supported on Windows")
+		Skip(reason)
 	}
 }
 
@@ -199,13 +199,7 @@ var _ = Describe("cukesvhs CLI", func() {
 		var tmpDir string
 
 		BeforeEach(func() {
-			var err error
-			tmpDir, err = os.MkdirTemp("", "cukesvhs-test-*")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			os.RemoveAll(tmpDir)
+			tmpDir = GinkgoT().TempDir()
 		})
 
 		Context("--output missing", func() {
@@ -455,13 +449,7 @@ var _ = Describe("cukesvhs CLI", func() {
 		var tmpDir string
 
 		BeforeEach(func() {
-			var err error
-			tmpDir, err = os.MkdirTemp("", "cukesvhs-gentapes-*")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			os.RemoveAll(tmpDir)
+			tmpDir = GinkgoT().TempDir()
 		})
 
 		Context("verbose mode with untranslatable scenario", func() {
@@ -550,13 +538,7 @@ var _ = Describe("cukesvhs CLI", func() {
 		var tmpDir string
 
 		BeforeEach(func() {
-			var err error
-			tmpDir, err = os.MkdirTemp("", "cukesvhs-writetape-*")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			os.RemoveAll(tmpDir)
+			tmpDir = GinkgoT().TempDir()
 		})
 
 		Context("VHSOnly source routing", func() {
@@ -617,7 +599,7 @@ var _ = Describe("cukesvhs CLI", func() {
 
 		Context("MkdirAll failure", func() {
 			It("returns error when output dir cannot be created", func() {
-				skipIfWindows()
+				skipIfWindows("file permission tests not supported on Windows")
 				scenario := cukesvhs.ScenarioIR{
 					Name:         "MkdirAll Fail",
 					Feature:      "Dir Fail",
@@ -641,7 +623,7 @@ var _ = Describe("cukesvhs CLI", func() {
 
 		Context("WriteFile failure", func() {
 			It("returns error when tape file cannot be written to read-only dir", func() {
-				skipIfWindows()
+				skipIfWindows("file permission tests not supported on Windows")
 				readOnlyDir := filepath.Join(tmpDir, "dir-fail")
 				err := os.MkdirAll(readOnlyDir, 0o755)
 				Expect(err).NotTo(HaveOccurred())
@@ -733,13 +715,7 @@ var _ = Describe("cukesvhs CLI", func() {
 		var tmpDir string
 
 		BeforeEach(func() {
-			var err error
-			tmpDir, err = os.MkdirTemp("", "cukesvhs-run-*")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			os.RemoveAll(tmpDir)
+			tmpDir = GinkgoT().TempDir()
 		})
 
 		Context("--output missing", func() {
@@ -903,13 +879,7 @@ var _ = Describe("cukesvhs CLI", func() {
 		var tmpDir string
 
 		BeforeEach(func() {
-			var err error
-			tmpDir, err = os.MkdirTemp("", "cukesvhs-update-*")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			os.RemoveAll(tmpDir)
+			tmpDir = GinkgoT().TempDir()
 		})
 
 		Context("--output missing", func() {
@@ -1094,7 +1064,7 @@ var _ = Describe("cukesvhs CLI", func() {
 
 		Context("--all flag when UpdateBaseline fails due to read-only golden dir", func() {
 			It("returns exit code 1 with error message", func() {
-				skipIfWindows()
+				skipIfWindows("file permission tests not supported on Windows")
 				goldenDir := GinkgoT().TempDir()
 				outputDir := GinkgoT().TempDir()
 
@@ -1121,7 +1091,7 @@ var _ = Describe("cukesvhs CLI", func() {
 
 		Context("positional scenario when UpdateBaseline fails due to read-only golden dir", func() {
 			It("returns exit code 1 with error message", func() {
-				skipIfWindows()
+				skipIfWindows("file permission tests not supported on Windows")
 				goldenDir := GinkgoT().TempDir()
 				outputDir := GinkgoT().TempDir()
 
@@ -1425,13 +1395,7 @@ var _ = Describe("cukesvhs CLI", func() {
 		var tmpDir string
 
 		BeforeEach(func() {
-			var err error
-			tmpDir, err = os.MkdirTemp("", "cukesvhs-business-*")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			os.RemoveAll(tmpDir)
+			tmpDir = GinkgoT().TempDir()
 		})
 
 		It("increments fromBusiness counter for translatable business scenario", func() {
@@ -1478,13 +1442,7 @@ var _ = Describe("cukesvhs CLI", func() {
 		var tmpDir string
 
 		BeforeEach(func() {
-			var err error
-			tmpDir, err = os.MkdirTemp("", "cukesvhs-gentape-err-*")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			os.RemoveAll(tmpDir)
+			tmpDir = GinkgoT().TempDir()
 		})
 
 		It("returns error when GenerateTape fails due to forbidden pattern", func() {
@@ -1639,11 +1597,9 @@ var _ = Describe("renderAndValidate with failed render results", func() {
 	It("returns 1 when individual tape renders fail", func() {
 		skipIfNoVHS()
 
-		// Create a temporary directory with a tape that will fail to render
 		tempDir := GinkgoT().TempDir()
 		goldenDir := GinkgoT().TempDir()
 
-		// Create an invalid tape file that will fail to render
 		tapePath := filepath.Join(tempDir, "invalid.tape")
 		err := os.WriteFile(tapePath, []byte("Output /tmp/invalid.gif\nType invalid command\n"), 0644)
 		Expect(err).NotTo(HaveOccurred())
@@ -1651,9 +1607,7 @@ var _ = Describe("renderAndValidate with failed render results", func() {
 		var out, errOut bytes.Buffer
 		code := renderAndValidate(&out, &errOut, tempDir, goldenDir, 5, "")
 
-		// Should return 1 because rendering failed
 		Expect(code).To(Equal(1))
-		// Should report the render error
 		Expect(errOut.String()).To(ContainSubstring("Error rendering"))
 	})
 })

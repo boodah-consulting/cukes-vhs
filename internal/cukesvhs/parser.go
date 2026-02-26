@@ -117,7 +117,21 @@ func extractScenarios(feature *messages.Feature, source SourceType) []ScenarioIR
 		}
 
 		if len(scenario.Examples) > 0 {
-			results = append(results, buildOutlineIR(scenario, feature.Name, tags, source, backgroundSteps))
+			hasRows := false
+			for _, ex := range scenario.Examples {
+				if ex.TableHeader != nil {
+					for _, row := range ex.TableBody {
+						ir := buildOutlineIR(scenario, feature.Name, tags, source, backgroundSteps, ex.TableHeader, row)
+						results = append(results, ir)
+						hasRows = true
+					}
+				}
+			}
+			if !hasRows {
+				ir := buildOutlineIR(scenario, feature.Name, tags, source, backgroundSteps, nil, nil)
+				results = append(results, ir)
+			}
+
 		} else {
 			results = append(results, buildScenarioIR(scenario, feature.Name, tags, source, backgroundSteps))
 		}
@@ -166,17 +180,9 @@ func buildOutlineIR(
 	tags []string,
 	source SourceType,
 	backgroundSteps []*messages.Step,
+	header *messages.TableRow,
+	row *messages.TableRow,
 ) ScenarioIR {
-	var header *messages.TableRow
-	var firstRow *messages.TableRow
-
-	for _, ex := range scenario.Examples {
-		if ex.TableHeader != nil && len(ex.TableBody) > 0 {
-			header = ex.TableHeader
-			firstRow = ex.TableBody[0]
-			break
-		}
-	}
 
 	ir := ScenarioIR{
 		Name:    scenario.Name,
@@ -189,7 +195,7 @@ func buildOutlineIR(
 
 	for _, step := range backgroundSteps {
 		stepType := resolveStepType(step.KeywordType, &lastPrimaryType)
-		text := substituteExampleValues(step.Text, header, firstRow)
+		text := substituteExampleValues(step.Text, header, row)
 		ir.SetupSteps = append(ir.SetupSteps, translateToStepIR(text, stepType))
 	}
 
@@ -197,7 +203,7 @@ func buildOutlineIR(
 
 	for _, step := range scenario.Steps {
 		stepType := resolveStepType(step.KeywordType, &lastPrimaryType)
-		text := substituteExampleValues(step.Text, header, firstRow)
+		text := substituteExampleValues(step.Text, header, row)
 		stepIR := translateToStepIR(text, stepType)
 		classifyStep(&ir, stepIR, stepType)
 	}

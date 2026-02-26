@@ -12,7 +12,7 @@ cukes-vhs is a Go CLI tool that converts Gherkin BDD scenarios into VHS tape fil
 ## Installation
 
 ```bash
-go install github.com/boodah-consulting/cukes-vhs/cmd/cukes-vhs@latest
+go install github.com/boodah-consulting/cukesvhs/cmd/cukes-vhs@latest
 ```
 
 Or build from source:
@@ -49,6 +49,8 @@ cukes-vhs update-baseline
 ### Generate Tapes
 ![Generate Tapes](demos/generate-vhs-tape-files/generate-all-translatable-tapes.gif)
 
+Demo recordings for `init` and `update-baseline` commands are coming soon.
+
 ## Development
 
 ### Prerequisites
@@ -70,7 +72,7 @@ make build         # Build binary with version injection
 make test          # Run tests with Ginkgo
 make test-race     # Run tests with race detector
 make coverage      # Run tests with coverage report
-make golangci-lint # Run full lint suite (40+ linters)
+make golangci-lint # Run full lint suite (51 linters)
 make check-compliance  # Full compliance check
 make pre-commit    # Pre-commit checks (fmt, vet, staticcheck, test)
 make ci-local      # Run full CI pipeline locally
@@ -80,13 +82,14 @@ make ci-local      # Run full CI pipeline locally
 ```
 cmd/
   cukes-vhs/       # CLI entry point
-  docblocks/       # Documentation analyzer
+  docblocks/       # Documentation analyser
+  gen-docs/        # Man page generator
 internal/
-  cukesvhs/          # Core library (parser, generator, renderer, etc.)
+  cukesvhs/        # Core library (parser, generator, renderer, etc.)
     templates/     # VHS tape templates (go:embed)
 tools/
   analyzers/
-    docblocks/     # Custom static analyzer for doc standards
+    docblocks/     # Custom static analyser for doc standards
 scripts/           # Build and CI scripts
 .git-hooks/        # Git commit hooks
 ```
@@ -100,7 +103,7 @@ make coverage      # With coverage (95% threshold)
 ```
 
 ### Code Quality
-- Enforces 40+ golangci-lint linters.
+- Enforces 51 golangci-lint linters.
 - Uses custom docblocks analyzer for documentation standards.
 - Enforces conventional commits via commitlint.
 - Tracks AI-assisted commits with attribution.

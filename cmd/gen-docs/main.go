@@ -10,8 +10,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/boodah-consulting/cukes-vhs/internal/cli"
 	"github.com/spf13/cobra/doc"
+
+	"github.com/boodah-consulting/cukes-vhs/internal/cli"
 )
 
 const (

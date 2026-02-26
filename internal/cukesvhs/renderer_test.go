@@ -335,7 +335,6 @@ var _ = Describe("Renderer", func() {
 				results, err := renderer.RenderAll(tmpDir, 30*time.Second)
 				Expect(err).To(HaveOccurred())
 				Expect(results).To(BeEmpty())
-				Expect(results).To(BeEmpty())
 			})
 		})
 

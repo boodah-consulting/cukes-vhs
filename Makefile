@@ -657,7 +657,7 @@ new-intent:
 # Show help for all available targets
 help:
 	@echo "================================================"
-	@echo "📋 KARIYA PROJECT - AVAILABLE COMMANDS"
+	@echo "📋 cukes-vhs - AVAILABLE COMMANDS"
 	@echo "================================================"
 	@echo ""
 	@echo "🧪 Testing:"

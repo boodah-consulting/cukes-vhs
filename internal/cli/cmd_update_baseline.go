@@ -44,6 +44,8 @@ update specific baselines.`,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			_ = cmd.Context()
+
 			out := cmd.OutOrStdout()
 			errOut := cmd.ErrOrStderr()
 
@@ -121,11 +123,11 @@ func runUpdateNamedBaselines(goldenDir, outputDir string, scenarios []string, ou
 		}
 
 		gifPath := deriveGIFPath(asciiPath)
-		if err := cukesvhs.UpdateBaseline(goldenDir, scenario, asciiPath, gifPath); err != nil {
-			fmt.Fprintf(errOut, "Error updating baseline for %q: %v\n", scenario, err)
+		if err := cukesvhs.UpdateBaseline(goldenDir, scenarioSlug, asciiPath, gifPath); err != nil {
+			fmt.Fprintf(errOut, "Error updating baseline for %q: %v\n", scenarioSlug, err)
 			return err
 		}
-		fmt.Fprintf(out, "Updated: %s\n", scenario)
+		fmt.Fprintf(out, "Updated: %s\n", scenarioSlug)
 		updated++
 	}
 
@@ -163,12 +165,6 @@ func parseUpdateBaselineFlags(args []string, errOut io.Writer) (*updateBaselineO
 	*opts.outputDir, _ = cmd.Flags().GetString("output")
 
 	positionalArgs := cmd.Flags().Args()
-	for _, arg := range args {
-		if arg == "all" || arg == "--all" {
-			*opts.updateAll = true
-			break
-		}
-	}
 
 	if *opts.outputDir == "" {
 		fmt.Fprintf(errOut, "Error: --output is required\n")

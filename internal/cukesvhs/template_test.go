@@ -86,12 +86,12 @@ Sleep 2s`,
 		})
 
 		It("includes the GIF output path exactly once", func() {
-			Expect(countSubstring(result, data.GIFPath)).To(Equal(1))
+			Expect(strings.Count(result, data.GIFPath)).To(Equal(1))
 		})
 
 		It("does not include an ASCII output path based on count", func() {
 			asciiPath := strings.Replace(data.GIFPath, ".gif", ".ascii", 1)
-			Expect(countSubstring(result, asciiPath)).To(Equal(0))
+			Expect(strings.Count(result, asciiPath)).To(Equal(0))
 		})
 	})
 
@@ -139,29 +139,3 @@ Sleep 2s`,
 		})
 	})
 })
-
-func countSubstring(s, substr string) int {
-	count := 0
-	idx := 0
-	for {
-		i := findSubstring(s[idx:], substr)
-		if i < 0 {
-			break
-		}
-		count++
-		idx += i + len(substr)
-	}
-	return count
-}
-
-func findSubstring(s, substr string) int {
-	if substr == "" {
-		return 0
-	}
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
-}

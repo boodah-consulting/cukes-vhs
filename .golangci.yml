@@ -189,7 +189,7 @@ linters:
         main:
           allow:
             - $gostd
-            - github.com/baphled/cukes-vhs
+            - github.com/boodah-consulting/cukes-vhs
             - github.com/cucumber/gherkin
             - github.com/cucumber/messages
             - github.com/onsi/ginkgo/v2
@@ -289,7 +289,7 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/baphled/cukes-vhs
+        - github.com/boodah-consulting/cukes-vhs
 
 # ---------------------------------------------------------------------------
 # Severity

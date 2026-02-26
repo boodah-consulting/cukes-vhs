@@ -8,102 +8,52 @@ import (
 )
 
 var _ = Describe("TranslateStep", func() {
-	Describe("menu intent selection", func() {
-		menuIntentCases := []struct {
-			intent       string
-			menuPosition int
-		}{
-			{"capture_event", 0},
-			{"browse_timeline", 1},
-			{"manage_skills", 2},
-			{"generate_cv", 3},
-			{"configure_system", 4},
-			{"burst_management", 5},
-			{"fact_management", 6},
-		}
+	DescribeTable("menu intent selection",
+		func(intent string, menuPosition int) {
+			stepText := `I select "` + intent + `" from the menu`
+			cmds, translatable, reason := cukesvhs.TranslateStep(stepText, "When")
 
-		for _, tc := range menuIntentCases {
-			Context("when selecting "+tc.intent+" from the menu", func() {
-				var cmds []cukesvhs.VHSCommand
-				var translatable bool
-				var reason string
+			Expect(translatable).To(BeTrue(), "expected translatable, got reason: %s", reason)
+			Expect(cmds).NotTo(BeEmpty(), "expected commands for menu selection")
+			Expect(len(cmds)).To(Equal(menuPosition+1),
+				"menu position %d requires %d navigation steps plus confirmation",
+				menuPosition, menuPosition)
+		},
+		Entry("capture_event", "capture_event", 0),
+		Entry("browse_timeline", "browse_timeline", 1),
+		Entry("manage_skills", "manage_skills", 2),
+		Entry("generate_cv", "generate_cv", 3),
+		Entry("configure_system", "configure_system", 4),
+		Entry("burst_management", "burst_management", 5),
+		Entry("fact_management", "fact_management", 6),
+	)
 
-				BeforeEach(func() {
-					stepText := `I select "` + tc.intent + `" from the menu`
-					cmds, translatable, reason = cukesvhs.TranslateStep(stepText, "When")
-				})
-
-				It("is translatable", func() {
-					Expect(translatable).To(BeTrue(), "expected translatable, got reason: %s", reason)
-				})
-
-				It("produces navigation commands followed by a confirmation", func() {
-					Expect(cmds).NotTo(BeEmpty(), "expected commands for menu selection")
-					Expect(len(cmds)).To(Equal(tc.menuPosition+1),
-						"menu position %d requires %d navigation steps plus confirmation",
-						tc.menuPosition, tc.menuPosition)
-				})
-			})
-		}
-
-		Context("when selecting the first menu item", func() {
-			It("produces only a confirmation command", func() {
-				cmds, translatable, _ := cukesvhs.TranslateStep(`I select "capture_event" from the menu`, "When")
-				Expect(translatable).To(BeTrue())
-				Expect(cmds).To(HaveLen(1), "first item needs only confirmation, no navigation")
-			})
-		})
-
-		Context("when selecting a middle menu item", func() {
-			It("produces navigation commands before confirmation", func() {
-				cmds, translatable, _ := cukesvhs.TranslateStep(`I select "manage_skills" from the menu`, "When")
-				Expect(translatable).To(BeTrue())
-				Expect(len(cmds)).To(BeNumerically(">", 1), "non-first items need navigation before confirmation")
-			})
-		})
-
-		Context("when selecting the last menu item", func() {
-			It("produces the most navigation commands before confirmation", func() {
-				cmds, translatable, _ := cukesvhs.TranslateStep(`I select "fact_management" from the menu`, "When")
-				Expect(translatable).To(BeTrue())
-				Expect(len(cmds)).To(Equal(7), "seventh menu item needs 6 navigations plus confirmation")
-			})
-		})
-
-		Context("when selecting an unknown intent", func() {
-			It("is not translatable with a descriptive reason", func() {
-				cmds, translatable, reason := cukesvhs.TranslateStep(`I select "nonexistent" from the menu`, "When")
-				Expect(translatable).To(BeFalse())
-				Expect(cmds).To(BeNil())
-				Expect(reason).To(ContainSubstring("unrecognised"))
-				Expect(reason).To(ContainSubstring("nonexistent"))
-			})
+	Context("when selecting an unknown intent", func() {
+		It("is not translatable with a descriptive reason", func() {
+			cmds, translatable, reason := cukesvhs.TranslateStep(`I select "nonexistent" from the menu`, "When")
+			Expect(translatable).To(BeFalse())
+			Expect(cmds).To(BeNil())
+			Expect(reason).To(ContainSubstring("unrecognised"))
+			Expect(reason).To(ContainSubstring("nonexistent"))
 		})
 	})
 
-	Describe("form-bypass steps", func() {
-		formBypassSteps := []string{
-			"I submit the event",
-			"I submit the skill form",
-			"I confirm filter",
-			"I confirm sort",
-			"I accept the suggested burst",
-			"I accept all inferred skills",
-			"I save the burst edit",
-			"I save metadata changes",
-			"I confirm the review",
-		}
-
-		for _, step := range formBypassSteps {
-			Context("when processing step: "+step, func() {
-				It("is not translatable because form interactions require keyboard navigation", func() {
-					_, translatable, reason := cukesvhs.TranslateStep(step, "When")
-					Expect(translatable).To(BeFalse())
-					Expect(reason).To(ContainSubstring("form-bypass"))
-				})
-			})
-		}
-	})
+	DescribeTable("form-bypass steps",
+		func(step string) {
+			_, translatable, reason := cukesvhs.TranslateStep(step, "When")
+			Expect(translatable).To(BeFalse())
+			Expect(reason).To(ContainSubstring("form-bypass"))
+		},
+		Entry("submit event", "I submit the event"),
+		Entry("submit skill form", "I submit the skill form"),
+		Entry("confirm filter", "I confirm filter"),
+		Entry("confirm sort", "I confirm sort"),
+		Entry("accept suggested burst", "I accept the suggested burst"),
+		Entry("accept inferred skills", "I accept all inferred skills"),
+		Entry("save burst edit", "I save the burst edit"),
+		Entry("save metadata changes", "I save metadata changes"),
+		Entry("confirm review", "I confirm the review"),
+	)
 
 	Describe("unknown steps", func() {
 		It("are not translatable with a clear reason", func() {

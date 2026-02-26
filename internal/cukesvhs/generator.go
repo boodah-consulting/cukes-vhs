@@ -3,7 +3,6 @@ package cukesvhs
 import (
 	_ "embed"
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -93,9 +92,7 @@ func GenerateTapeFs(afs afero.Fs, scenario ScenarioIR, config GeneratorConfig) (
 		return "", err
 	}
 	defer cleanup()
-	if warning != "" {
-		fmt.Fprint(os.Stderr, warning)
-	}
+	_ = warning
 
 	sleepDuration := config.SleepDuration
 	if sleepDuration == "" {

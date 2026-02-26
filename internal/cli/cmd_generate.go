@@ -51,6 +51,8 @@ or scenario name.`,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			_ = cmd.Context()
+
 			out := cmd.OutOrStdout()
 			errOut := cmd.ErrOrStderr()
 
@@ -168,13 +170,6 @@ func parseGenerateFlags(args []string, errOut io.Writer) (*generateOptions, erro
 	*opts.verbose, _ = cmd.Flags().GetBool("verbose")
 	*opts.timeoutSec, _ = cmd.Flags().GetInt("timeout")
 	*opts.binaryPath, _ = cmd.Flags().GetString("binary-path")
-
-	for _, arg := range args {
-		if arg == "all" || arg == "--all" {
-			*opts.generateAll = true
-			break
-		}
-	}
 
 	if *opts.outputDir == "" {
 		fmt.Fprintf(errOut, "Error: --output is required\n")
