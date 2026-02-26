@@ -47,8 +47,6 @@ checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
-sboms:
-  - disable: true
 
 changelog:
   disable: true
