@@ -320,13 +320,15 @@ if [ -z "$MODEL_NAME" ]; then
     exit 1
 fi
 
-# Get reviewer name from git config
+# Get reviewer name and email from git config
 REVIEWER_NAME=$(git config user.name)
+REVIEWER_EMAIL=$(git config user.email)
 
-if [ -z "$REVIEWER_NAME" ]; then
-    echo -e "${YELLOW}⚠️  Warning: git user.name not set${NC}"
-    echo "Set it with: git config user.name \"Your Name\""
-    REVIEWER_NAME="Unknown"
+if [ -z "$REVIEWER_NAME" ] || [ -z "$REVIEWER_EMAIL" ]; then
+    echo -e "${YELLOW}⚠️  Warning: git user.name or user.email not set${NC}"
+    echo "Set them with: git config user.name \"Your Name\" && git config user.email \"your.email@example.com\""
+    REVIEWER_NAME="${REVIEWER_NAME:-Unknown}"
+    REVIEWER_EMAIL="${REVIEWER_EMAIL:-unknown@example.com}"
 fi
 
 # ============================================================================
@@ -352,7 +354,7 @@ cat > "$FINAL_MSG_FILE" <<EOF
 ${COMMIT_MSG}
 
 AI-Generated-By: ${AGENT_NAME} (${MODEL_NAME})
-Reviewed-By: ${REVIEWER_NAME}
+Reviewed-By: ${REVIEWER_NAME} <${REVIEWER_EMAIL}>
 EOF
 
 # Build commit flags array
