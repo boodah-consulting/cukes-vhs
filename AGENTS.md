@@ -18,6 +18,7 @@ This document provides AI agents with the necessary context, conventions, and pa
 - Refuse if about to do something that violates these rules
 - **NEVER declare a task "done" or "complete" - only the USER decides when work is finished**
 - **NEVER decide to skip, postpone, or deprioritize work - only the USER makes these decisions**
+- NEVER run `vhs` directly — use the project's recording tooling instead
 
 ### Token Efficiency
 - Be concise and precise
