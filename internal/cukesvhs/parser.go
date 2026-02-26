@@ -3,12 +3,12 @@ package cukesvhs
 import (
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 
 	gherkin "github.com/cucumber/gherkin/go/v26"
 	messages "github.com/cucumber/messages/go/v21"
+	"github.com/spf13/afero"
 )
 
 // ParseFeatureDir walks a directory for .feature files and parses all scenarios into ScenarioIR.
@@ -17,22 +17,35 @@ import (
 // Returns: Slice of ScenarioIR for all scenarios found; empty slice and nil error for empty directories.
 // Side effects: Reads files from disk.
 func ParseFeatureDir(dir string, source SourceType) ([]ScenarioIR, error) {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
+	return ParseFeatureDirFs(DefaultFs(), dir, source)
+}
+
+// ParseFeatureDirFs walks a directory for .feature files using the provided filesystem.
+//
+// Expected: fs is the filesystem to use; dir is a path to a directory; source indicates origin.
+// Returns: Slice of ScenarioIR for all scenarios found; empty slice and nil error for empty directories.
+// Side effects: Reads files from the provided filesystem.
+func ParseFeatureDirFs(afs afero.Fs, dir string, source SourceType) ([]ScenarioIR, error) {
+	exists, err := afero.DirExists(afs, dir)
+	if err != nil {
+		return nil, fmt.Errorf("checking directory %s: %w", dir, err)
+	}
+	if !exists {
 		return []ScenarioIR{}, nil
 	}
 
 	var results []ScenarioIR
 
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+	err = afero.Walk(afs, dir, func(path string, info fs.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
 		}
 
-		if d.IsDir() || !strings.HasSuffix(d.Name(), ".feature") {
+		if info.IsDir() || !strings.HasSuffix(info.Name(), ".feature") {
 			return nil
 		}
 
-		scenarios, parseErr := parseFeatureFile(path, source)
+		scenarios, parseErr := parseFeatureFileFs(afs, path, source)
 		if parseErr != nil {
 			return fmt.Errorf("parsing %s: %w", path, parseErr)
 		}
@@ -52,10 +65,10 @@ func ParseFeatureDir(dir string, source SourceType) ([]ScenarioIR, error) {
 	return results, nil
 }
 
-func parseFeatureFile(path string, source SourceType) ([]ScenarioIR, error) {
+func parseFeatureFileFs(afs afero.Fs, path string, source SourceType) ([]ScenarioIR, error) {
 	path = filepath.Clean(path)
 
-	f, err := os.Open(path)
+	f, err := afs.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %w", err)
 	}

@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/spf13/afero"
 )
 
 //go:embed config.tape
@@ -24,16 +26,24 @@ const (
 // If customPath was provided but not found, a warning message is returned.
 // The caller must call the cleanup function to remove any temp file created.
 func resolveConfigPath(customPath string) (string, string, func(), error) {
+	return resolveConfigPathFs(DefaultFs(), customPath)
+}
+
+// resolveConfigPathFs resolves config path using the provided filesystem.
+func resolveConfigPathFs(afs afero.Fs, customPath string) (string, string, func(), error) {
 	var warning string
 	if customPath != "" {
-		if _, err := os.Stat(customPath); err == nil {
+		exists, err := afero.Exists(afs, customPath)
+		if err != nil {
+			return "", "", func() {}, fmt.Errorf("checking config file: %w", err)
+		}
+		if exists {
 			return customPath, "", func() {}, nil
 		}
 		warning = fmt.Sprintf("Warning: config file not found at %s, using embedded default. Run 'cukes-vhs init' to create one.\n", customPath)
 	}
 
-	// Fallback to embedded config in a unique temp file
-	f, err := os.CreateTemp("", "cukesvhs-*.tape")
+	f, err := afero.TempFile(afs, "", "cukesvhs-*.tape")
 	if err != nil {
 		return "", "", func() {}, fmt.Errorf("creating temp config file: %w", err)
 	}
@@ -42,18 +52,18 @@ func resolveConfigPath(customPath string) (string, string, func(), error) {
 
 	if _, err := f.Write([]byte(defaultConfigContent)); err != nil {
 		_ = f.Close()
-		_ = os.Remove(tmpPath)
+		_ = afs.Remove(tmpPath)
 
 		return "", "", func() {}, fmt.Errorf("writing embedded config: %w", err)
 	}
 
 	if err := f.Close(); err != nil {
-		_ = os.Remove(tmpPath)
+		_ = afs.Remove(tmpPath)
 
 		return "", "", func() {}, fmt.Errorf("closing temp config file: %w", err)
 	}
 
-	return tmpPath, warning, func() { _ = os.Remove(tmpPath) }, nil
+	return tmpPath, warning, func() { _ = afs.Remove(tmpPath) }, nil
 }
 
 // forbiddenPatterns returns patterns that must not appear in generated tape content.
@@ -68,13 +78,17 @@ func forbiddenPatterns() []string {
 // Returns: rendered tape content as string, or error if rendering or validation fails.
 // Side effects: May create a temporary config file (cleaned up before returning).
 func GenerateTape(scenario ScenarioIR, config GeneratorConfig) (string, error) {
+	return GenerateTapeFs(DefaultFs(), scenario, config)
+}
+
+// GenerateTapeFs produces VHS tape file content using the provided filesystem.
+func GenerateTapeFs(afs afero.Fs, scenario ScenarioIR, config GeneratorConfig) (string, error) {
 	configSourcePath := config.ConfigSourcePath
 	if configSourcePath == "" {
 		configSourcePath = defaultConfigSourcePath
 	}
 
-	// Resolve config with fallback; clean up any temp file when done
-	resolvedConfigPath, warning, cleanup, err := resolveConfigPath(configSourcePath)
+	resolvedConfigPath, warning, cleanup, err := resolveConfigPathFs(afs, configSourcePath)
 	if err != nil {
 		return "", err
 	}
@@ -118,7 +132,12 @@ func GenerateTape(scenario ScenarioIR, config GeneratorConfig) (string, error) {
 // Returns: error if generation or file writing fails.
 // Side effects: Creates directories and writes tape file to disk.
 func WriteTape(scenario ScenarioIR, config GeneratorConfig) error {
-	content, err := GenerateTape(scenario, config)
+	return WriteTapeFs(DefaultFs(), scenario, config)
+}
+
+// WriteTapeFs generates tape content and writes it using the provided filesystem.
+func WriteTapeFs(afs afero.Fs, scenario ScenarioIR, config GeneratorConfig) error {
+	content, err := GenerateTapeFs(afs, scenario, config)
 	if err != nil {
 		return err
 	}
@@ -127,13 +146,13 @@ func WriteTape(scenario ScenarioIR, config GeneratorConfig) error {
 	scenarioSlug := Slugify(scenario.Name)
 	dir := filepath.Join(config.OutputDir, featureSlug)
 
-	if err := os.MkdirAll(dir, 0o750); err != nil {
+	if err := afs.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("creating output directory %q: %w", dir, err)
 	}
 
 	outPath := filepath.Join(dir, scenarioSlug+".tape")
 
-	if err := os.WriteFile(outPath, []byte(content), 0o600); err != nil {
+	if err := afero.WriteFile(afs, outPath, []byte(content), 0o600); err != nil {
 		return fmt.Errorf("writing tape file %q: %w", outPath, err)
 	}
 

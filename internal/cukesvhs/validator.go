@@ -2,10 +2,12 @@ package cukesvhs
 
 import (
 	"fmt"
-	"os"
+	"io/fs"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/spf13/afero"
 )
 
 // ValidationStatus represents the outcome of a single scenario validation.
@@ -70,6 +72,11 @@ func normalise(s string) string {
 // ValidationFail with diff when content differs; ValidationPass otherwise.
 // Side effects: may create a new baseline directory and placeholder GIF when no baseline exists.
 func ValidateScenario(goldenDir, scenario, currentASCIIPath string) (ValidationResult, error) {
+	return ValidateScenarioFs(DefaultFs(), goldenDir, scenario, currentASCIIPath)
+}
+
+// ValidateScenarioFs validates a scenario using the provided filesystem.
+func ValidateScenarioFs(afs afero.Fs, goldenDir, scenario, currentASCIIPath string) (ValidationResult, error) {
 	currentASCIIPath = filepath.Clean(currentASCIIPath)
 
 	result := ValidationResult{
@@ -77,22 +84,22 @@ func ValidateScenario(goldenDir, scenario, currentASCIIPath string) (ValidationR
 		ASCIIPath: currentASCIIPath,
 	}
 
-	goldenASCII, exists, err := GetBaseline(goldenDir, scenario)
+	goldenASCII, exists, err := GetBaselineFs(afs, goldenDir, scenario)
 	if err != nil {
 		return result, fmt.Errorf("looking up baseline for %q: %w", scenario, err)
 	}
 
 	if !exists {
-		placeholderGIF, placeholderErr := ensurePlaceholderGIF(goldenDir, scenario)
+		placeholderGIF, placeholderErr := ensurePlaceholderGIFFs(afs, goldenDir, scenario)
 		if placeholderErr != nil {
 			return result, fmt.Errorf("creating placeholder GIF for %q: %w", scenario, placeholderErr)
 		}
 
-		if saveErr := SaveBaseline(goldenDir, scenario, currentASCIIPath, placeholderGIF); saveErr != nil {
+		if saveErr := SaveBaselineFs(afs, goldenDir, scenario, currentASCIIPath, placeholderGIF); saveErr != nil {
 			return result, fmt.Errorf("saving new baseline for %q: %w", scenario, saveErr)
 		}
 
-		savedASCII, _, saveErr := GetBaseline(goldenDir, scenario)
+		savedASCII, _, saveErr := GetBaselineFs(afs, goldenDir, scenario)
 		if saveErr != nil {
 			return result, fmt.Errorf("retrieving saved baseline for %q: %w", scenario, saveErr)
 		}
@@ -106,12 +113,12 @@ func ValidateScenario(goldenDir, scenario, currentASCIIPath string) (ValidationR
 	result.GoldenPath = goldenASCII
 	goldenASCII = filepath.Clean(goldenASCII)
 
-	currentData, err := os.ReadFile(currentASCIIPath)
+	currentData, err := afero.ReadFile(afs, currentASCIIPath)
 	if err != nil {
 		return result, fmt.Errorf("reading current ASCII %q: %w", currentASCIIPath, err)
 	}
 
-	goldenData, err := os.ReadFile(goldenASCII)
+	goldenData, err := afero.ReadFile(afs, goldenASCII)
 	if err != nil {
 		return result, fmt.Errorf("reading golden ASCII %q: %w", goldenASCII, err)
 	}
@@ -136,7 +143,12 @@ func ValidateScenario(goldenDir, scenario, currentASCIIPath string) (ValidationR
 // Returns: all ValidationResults collected regardless of PASS/FAIL; a non-nil error only for directory scanning failures.
 // Side effects: may create new baseline entries for NEW scenarios.
 func ValidateAll(goldenDir, outputDir string) ([]ValidationResult, error) {
-	files, err := collectASCIIFiles(outputDir)
+	return ValidateAllFs(DefaultFs(), goldenDir, outputDir)
+}
+
+// ValidateAllFs validates all ASCII files using the provided filesystem.
+func ValidateAllFs(afs afero.Fs, goldenDir, outputDir string) ([]ValidationResult, error) {
+	files, err := collectASCIIFilesFs(afs, outputDir)
 	if err != nil {
 		return nil, fmt.Errorf("scanning output directory %q: %w", outputDir, err)
 	}
@@ -146,7 +158,7 @@ func ValidateAll(goldenDir, outputDir string) ([]ValidationResult, error) {
 	for _, asciiPath := range files {
 		scenario := deriveScenario(outputDir, asciiPath)
 
-		result, validateErr := ValidateScenario(goldenDir, scenario, asciiPath)
+		result, validateErr := ValidateScenarioFs(afs, goldenDir, scenario, asciiPath)
 		if validateErr != nil {
 			result.Scenario = scenario
 			result.ASCIIPath = asciiPath
@@ -160,16 +172,16 @@ func ValidateAll(goldenDir, outputDir string) ([]ValidationResult, error) {
 	return results, nil
 }
 
-// collectASCIIFiles returns all .ascii files found recursively under dir.
-func collectASCIIFiles(dir string) ([]string, error) {
+// collectASCIIFilesFs returns all .ascii files using the provided filesystem.
+func collectASCIIFilesFs(afs afero.Fs, dir string) ([]string, error) {
 	var files []string
 
-	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, walkErr error) error {
+	err := afero.Walk(afs, dir, func(path string, info fs.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 
-		if !d.IsDir() && strings.HasSuffix(path, ".ascii") {
+		if !info.IsDir() && strings.HasSuffix(path, ".ascii") {
 			files = append(files, path)
 		}
 
@@ -196,15 +208,15 @@ func deriveScenario(outputDir, asciiPath string) string {
 	return Slugify(rel)
 }
 
-// ensurePlaceholderGIF creates an empty placeholder GIF to satisfy SaveBaseline's GIF path requirement.
-func ensurePlaceholderGIF(goldenDir, scenario string) (string, error) {
+// ensurePlaceholderGIFFs creates a placeholder GIF using the provided filesystem.
+func ensurePlaceholderGIFFs(afs afero.Fs, goldenDir, scenario string) (string, error) {
 	placeholderDir := filepath.Join(goldenDir, ".placeholders")
-	if err := os.MkdirAll(placeholderDir, 0o750); err != nil {
+	if err := afs.MkdirAll(placeholderDir, 0o750); err != nil {
 		return "", fmt.Errorf("creating placeholder dir: %w", err)
 	}
 
 	gifPath := filepath.Join(placeholderDir, Slugify(scenario)+".gif")
-	if err := os.WriteFile(gifPath, minimalGIF, 0o600); err != nil {
+	if err := afero.WriteFile(afs, gifPath, minimalGIF, 0o600); err != nil {
 		return "", fmt.Errorf("writing placeholder GIF: %w", err)
 	}
 

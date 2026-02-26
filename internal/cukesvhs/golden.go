@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/spf13/afero"
 )
 
 const (
@@ -27,17 +29,22 @@ type BaselineInfo struct {
 // Returns: error if directory creation or file copy fails; nil on success.
 // Side effects: creates {goldenDir}/{scenario-slug}/ and writes baseline.txt + baseline.gif.
 func SaveBaseline(goldenDir, scenario, asciiPath, gifPath string) error {
+	return SaveBaselineFs(DefaultFs(), goldenDir, scenario, asciiPath, gifPath)
+}
+
+// SaveBaselineFs copies baseline files using the provided filesystem.
+func SaveBaselineFs(afs afero.Fs, goldenDir, scenario, asciiPath, gifPath string) error {
 	dir := baselineDir(goldenDir, scenario)
 
-	if err := os.MkdirAll(dir, 0o750); err != nil {
+	if err := afs.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("creating baseline dir %q: %w", dir, err)
 	}
 
-	if err := copyFile(asciiPath, filepath.Join(dir, baselineASCIIFile)); err != nil {
+	if err := copyFileFs(afs, asciiPath, filepath.Join(dir, baselineASCIIFile)); err != nil {
 		return fmt.Errorf("copying ASCII baseline for %q: %w", scenario, err)
 	}
 
-	if err := copyFile(gifPath, filepath.Join(dir, baselineGIFFile)); err != nil {
+	if err := copyFileFs(afs, gifPath, filepath.Join(dir, baselineGIFFile)); err != nil {
 		return fmt.Errorf("copying GIF baseline for %q: %w", scenario, err)
 	}
 
@@ -50,20 +57,37 @@ func SaveBaseline(goldenDir, scenario, asciiPath, gifPath string) error {
 // Returns: asciiPath and exists=true if both baseline files are present; exists=false and err=nil if absent.
 // Side effects: none.
 func GetBaseline(goldenDir, scenario string) (asciiPath string, exists bool, err error) {
+	return GetBaselineFs(DefaultFs(), goldenDir, scenario)
+}
+
+// GetBaselineFs retrieves baseline info using the provided filesystem.
+func GetBaselineFs(afs afero.Fs, goldenDir, scenario string) (asciiPath string, exists bool, err error) {
 	dir := baselineDir(goldenDir, scenario)
 
-	if _, statErr := os.Stat(dir); os.IsNotExist(statErr) {
+	dirExists, err := afero.DirExists(afs, dir)
+	if err != nil {
+		return "", false, fmt.Errorf("checking baseline dir: %w", err)
+	}
+	if !dirExists {
 		return "", false, nil
 	}
 
 	ascii := filepath.Join(dir, baselineASCIIFile)
 	gif := filepath.Join(dir, baselineGIFFile)
 
-	if _, statErr := os.Stat(ascii); os.IsNotExist(statErr) {
+	asciiExists, err := afero.Exists(afs, ascii)
+	if err != nil {
+		return "", false, fmt.Errorf("checking ascii baseline: %w", err)
+	}
+	if !asciiExists {
 		return "", false, nil
 	}
 
-	if _, statErr := os.Stat(gif); os.IsNotExist(statErr) {
+	gifExists, err := afero.Exists(afs, gif)
+	if err != nil {
+		return "", false, fmt.Errorf("checking gif baseline: %w", err)
+	}
+	if !gifExists {
 		return "", false, nil
 	}
 
@@ -79,15 +103,26 @@ func UpdateBaseline(goldenDir, scenario, asciiPath, gifPath string) error {
 	return SaveBaseline(goldenDir, scenario, asciiPath, gifPath)
 }
 
+// UpdateBaselineFs overwrites baseline using the provided filesystem.
+func UpdateBaselineFs(afs afero.Fs, goldenDir, scenario, asciiPath, gifPath string) error {
+	return SaveBaselineFs(afs, goldenDir, scenario, asciiPath, gifPath)
+}
+
 // ListBaselines returns metadata for every stored baseline under goldenDir.
 //
 // Expected: goldenDir may be an empty or non-existent directory.
 // Returns: slice of BaselineInfo (one per scenario with both baseline files); empty slice and nil error when none exist.
 // Side effects: none.
 func ListBaselines(goldenDir string) ([]BaselineInfo, error) {
-	entries, err := os.ReadDir(goldenDir)
+	return ListBaselinesFs(DefaultFs(), goldenDir)
+}
+
+// ListBaselinesFs returns baseline metadata using the provided filesystem.
+func ListBaselinesFs(afs afero.Fs, goldenDir string) ([]BaselineInfo, error) {
+	entries, err := afero.ReadDir(afs, goldenDir)
 	if err != nil {
-		if os.IsNotExist(err) {
+		dirExists, existErr := afero.DirExists(afs, goldenDir)
+		if existErr == nil && !dirExists {
 			return []BaselineInfo{}, nil
 		}
 
@@ -104,21 +139,17 @@ func ListBaselines(goldenDir string) ([]BaselineInfo, error) {
 		ascii := filepath.Join(goldenDir, entry.Name(), baselineASCIIFile)
 		gif := filepath.Join(goldenDir, entry.Name(), baselineGIFFile)
 
-		asciiInfo, statErr := os.Stat(ascii)
-		if os.IsNotExist(statErr) {
-			continue
-		}
-
+		asciiInfo, statErr := afs.Stat(ascii)
 		if statErr != nil {
-			return nil, fmt.Errorf("stat baseline for %q: %w", entry.Name(), statErr)
-		}
-
-		if _, statErr := os.Stat(gif); statErr != nil {
 			if os.IsNotExist(statErr) {
 				continue
 			}
+			return nil, fmt.Errorf("stat baseline for %q: %w", entry.Name(), statErr)
+		}
 
-			return nil, fmt.Errorf("stat GIF baseline for %q: %w", entry.Name(), statErr)
+		gifExists, _ := afero.Exists(afs, gif)
+		if !gifExists {
+			continue
 		}
 
 		results = append(results, BaselineInfo{
@@ -140,17 +171,17 @@ func baselineDir(goldenDir, scenario string) string {
 	return filepath.Join(goldenDir, Slugify(scenario))
 }
 
-func copyFile(src, dst string) error {
+func copyFileFs(afs afero.Fs, src, dst string) error {
 	src = filepath.Clean(src)
 	dst = filepath.Clean(dst)
 
-	in, err := os.Open(src)
+	in, err := afs.Open(src)
 	if err != nil {
 		return fmt.Errorf("opening source %q: %w", src, err)
 	}
 	defer func() { _ = in.Close() }()
 
-	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	out, err := afs.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("creating destination %q: %w", dst, err)
 	}
