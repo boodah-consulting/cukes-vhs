@@ -373,12 +373,7 @@ echo ""
 # Build full commit message with attribution
 FINAL_MSG_FILE=$(mktemp)
 
-cat > "$FINAL_MSG_FILE" <<'EOF'
-${COMMIT_MSG}
-
-AI-Generated-By: ${AGENT_NAME} (${MODEL_NAME})
-Reviewed-By: ${AGENT_NAME} (${MODEL_NAME})
-EOF
+cat > "$FINAL_MSG_FILE" <<EOF
 ${COMMIT_MSG}
 
 AI-Generated-By: ${AGENT_NAME} (${MODEL_NAME})
