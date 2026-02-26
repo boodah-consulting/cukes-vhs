@@ -53,7 +53,7 @@ jobs:
         run: staticcheck ./...
 
   test:
-    name: Test
+    name: test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
