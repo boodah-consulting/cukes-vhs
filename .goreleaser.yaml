@@ -48,7 +48,7 @@ checksum:
   algorithm: sha256
 
 sboms:
-  - disabled: true
+  - disable: true
 
 changelog:
   disable: true
