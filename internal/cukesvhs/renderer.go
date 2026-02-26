@@ -6,11 +6,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/spf13/afero"
 )
 
 const defaultRenderTimeout = 120 * time.Second
@@ -28,6 +31,7 @@ type RenderResult struct {
 // Renderer invokes the VHS CLI to render tape files.
 type Renderer struct {
 	binaryPath string
+	fs         afero.Fs
 }
 
 // NewRenderer returns a new Renderer configured with the given VHS binary path.
@@ -36,11 +40,16 @@ type Renderer struct {
 // Returns: a non-nil *Renderer ready for use.
 // Side effects: none.
 func NewRenderer(binaryPath string) *Renderer {
+	return NewRendererFs(DefaultFs(), binaryPath)
+}
+
+// NewRendererFs returns a new Renderer with the given filesystem.
+func NewRendererFs(afs afero.Fs, binaryPath string) *Renderer {
 	if binaryPath == "" {
 		binaryPath = "vhs"
 	}
 
-	return &Renderer{binaryPath: binaryPath}
+	return &Renderer{binaryPath: binaryPath, fs: afs}
 }
 
 // RenderTape runs the vhs binary against tapePath and returns the result.
@@ -59,7 +68,7 @@ func (r *Renderer) RenderTape(tapePath string, timeout time.Duration) (RenderRes
 		return result, fmt.Errorf("%s binary not found in PATH: %w", r.binaryPath, err)
 	}
 
-	gifPath, asciiPath, err := parseOutputPaths(tapePath)
+	gifPath, asciiPath, err := r.parseOutputPaths(tapePath)
 	if err != nil {
 		return result, fmt.Errorf("reading tape file %q: %w", tapePath, err)
 	}
@@ -95,7 +104,7 @@ func (r *Renderer) RenderAll(tapeDir string, timeout time.Duration) ([]RenderRes
 		return nil, fmt.Errorf("%s binary not found in PATH: %w", r.binaryPath, err)
 	}
 
-	tapes, err := collectTapeFiles(tapeDir)
+	tapes, err := r.collectTapeFiles(tapeDir)
 	if err != nil {
 		return nil, fmt.Errorf("scanning tape directory %q: %w", tapeDir, err)
 	}
@@ -116,15 +125,15 @@ func (r *Renderer) RenderAll(tapeDir string, timeout time.Duration) ([]RenderRes
 }
 
 // collectTapeFiles returns all .tape files found recursively under dir.
-func collectTapeFiles(dir string) ([]string, error) {
+func (r *Renderer) collectTapeFiles(dir string) ([]string, error) {
 	var tapes []string
 
-	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, walkErr error) error {
+	err := afero.Walk(r.fs, dir, func(path string, info fs.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 
-		if !d.IsDir() && strings.HasSuffix(path, ".tape") {
+		if !info.IsDir() && strings.HasSuffix(path, ".tape") {
 			tapes = append(tapes, path)
 		}
 
@@ -138,10 +147,10 @@ func collectTapeFiles(dir string) ([]string, error) {
 }
 
 // parseOutputPaths reads a tape file and extracts the first GIF and ASCII output paths; relative paths are resolved to absolute form.
-func parseOutputPaths(tapePath string) (gifPath, asciiPath string, err error) {
+func (r *Renderer) parseOutputPaths(tapePath string) (gifPath, asciiPath string, err error) {
 	tapePath = filepath.Clean(tapePath)
 
-	data, err := os.ReadFile(tapePath)
+	data, err := afero.ReadFile(r.fs, tapePath)
 	if err != nil {
 		return "", "", err
 	}
