@@ -1,9 +1,9 @@
 # Feature: Generate VHS tape files
 # Scenario: Generate tapes with verbose output
 
-Source config/config.tape
+Source "config/config.tape"
 
-Output demos/generate-vhs-tape-files/generate-tapes-with-verbose-output.gif
+Output "demos/generate-vhs-tape-files/generate-tapes-with-verbose-output.gif"
 
 Hide
 

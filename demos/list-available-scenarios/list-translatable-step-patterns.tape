@@ -1,9 +1,9 @@
 # Feature: List available scenarios
 # Scenario: List translatable step patterns
 
-Source config/config.tape
+Source "config/config.tape"
 
-Output demos/list-available-scenarios/list-translatable-step-patterns.gif
+Output "demos/list-available-scenarios/list-translatable-step-patterns.gif"
 
 Hide
 

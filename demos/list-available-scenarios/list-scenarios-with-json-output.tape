@@ -1,9 +1,9 @@
 # Feature: List available scenarios
 # Scenario: List scenarios with JSON output
 
-Source config/config.tape
+Source "config/config.tape"
 
-Output demos/list-available-scenarios/list-scenarios-with-json-output.gif
+Output "demos/list-available-scenarios/list-scenarios-with-json-output.gif"
 
 Hide
 

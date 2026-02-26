@@ -1,9 +1,9 @@
 # Feature: Generate VHS tape files
 # Scenario: Generate tapes for a specific feature
 
-Source config/config.tape
+Source "config/config.tape"
 
-Output demos/generate-vhs-tape-files/generate-tapes-for-a-specific-feature.gif
+Output "demos/generate-vhs-tape-files/generate-tapes-for-a-specific-feature.gif"
 
 Hide
 

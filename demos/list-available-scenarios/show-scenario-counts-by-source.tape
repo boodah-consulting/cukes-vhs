@@ -1,9 +1,9 @@
 # Feature: List available scenarios
 # Scenario: Show scenario counts by source
 
-Source config/config.tape
+Source "config/config.tape"
 
-Output demos/list-available-scenarios/show-scenario-counts-by-source.gif
+Output "demos/list-available-scenarios/show-scenario-counts-by-source.gif"
 
 Hide
 

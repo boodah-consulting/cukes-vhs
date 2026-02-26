@@ -1,9 +1,9 @@
 # Feature: Run generated tapes
 # Scenario: Run tape with cukes-vhs
 
-Source config/config.tape
+Source "config/config.tape"
 
-Output demos/run-generated-tapes/run-tape-with-cukes-vhs.gif
+Output "demos/run-generated-tapes/run-tape-with-cukes-vhs.gif"
 
 Hide
 

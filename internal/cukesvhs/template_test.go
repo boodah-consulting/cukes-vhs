@@ -50,6 +50,13 @@ Sleep 2s`,
 		It("includes the GIF output path", func() {
 			Expect(result).To(ContainSubstring(data.GIFPath))
 		})
+		It("quotes the GIF output path for VHS compatibility", func() {
+			Expect(result).To(ContainSubstring(`Output "` + data.GIFPath + `"`))
+		})
+
+		It("quotes the config source path for VHS compatibility", func() {
+			Expect(result).To(ContainSubstring(`Source "` + data.ConfigSourcePath + `"`))
+		})
 
 		It("does not include an ASCII output path", func() {
 			asciiPath := strings.Replace(data.GIFPath, ".gif", ".ascii", 1)

@@ -1,9 +1,9 @@
 # Feature: Explore CLI help
 # Scenario: Display list subcommand help
 
-Source config/config.tape
+Source "config/config.tape"
 
-Output demos/explore-cli-help/display-list-subcommand-help.gif
+Output "demos/explore-cli-help/display-list-subcommand-help.gif"
 
 Hide
 

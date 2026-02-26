@@ -1,9 +1,9 @@
 # Feature: Generate VHS tape files
 # Scenario: Generate all translatable tapes
 
-Source config/config.tape
+Source "config/config.tape"
 
-Output demos/generate-vhs-tape-files/generate-all-translatable-tapes.gif
+Output "demos/generate-vhs-tape-files/generate-all-translatable-tapes.gif"
 
 Hide
 

@@ -1,9 +1,9 @@
 # Feature: Run generated tapes
 # Scenario: Run all tapes
 
-Source config/config.tape
+Source "config/config.tape"
 
-Output demos/run-generated-tapes/run-all-tapes.gif
+Output "demos/run-generated-tapes/run-all-tapes.gif"
 
 Hide
 

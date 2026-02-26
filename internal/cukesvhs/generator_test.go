@@ -64,6 +64,13 @@ var _ = Describe("GenerateTape", func() {
 			Expect(result).To(ContainSubstring("Output"))
 			Expect(result).To(ContainSubstring(".gif"))
 		})
+		It("quotes the Output path for VHS compatibility", func() {
+			Expect(result).To(MatchRegexp(`Output ".*\.gif"`))
+		})
+
+		It("quotes the Source path for VHS compatibility", func() {
+			Expect(result).To(MatchRegexp(`Source ".*\.tape"`))
+		})
 
 		It("does not generate ASCII output by default", func() {
 			Expect(result).NotTo(ContainSubstring(".ascii"))

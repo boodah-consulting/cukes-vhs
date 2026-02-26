@@ -1,9 +1,9 @@
 # Feature: Run generated tapes
 # Scenario: Run tapes with verbose output
 
-Source config/config.tape
+Source "config/config.tape"
 
-Output demos/run-generated-tapes/run-tapes-with-verbose-output.gif
+Output "demos/run-generated-tapes/run-tapes-with-verbose-output.gif"
 
 Hide
 

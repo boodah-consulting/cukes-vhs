@@ -1,9 +1,9 @@
 # Feature: Explore CLI help
 # Scenario: Display top-level help
 
-Source config/config.tape
+Source "config/config.tape"
 
-Output demos/explore-cli-help/display-top-level-help.gif
+Output "demos/explore-cli-help/display-top-level-help.gif"
 
 Hide
 
