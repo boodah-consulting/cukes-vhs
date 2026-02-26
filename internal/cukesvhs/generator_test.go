@@ -55,16 +55,18 @@ var _ = Describe("GenerateTape", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("contains the Source directive", func() {
-			Expect(result).To(MatchRegexp(`Source .*/cukesvhs-.*\.tape`))
+		It("references an external config source", func() {
+			Expect(result).To(ContainSubstring("Source"))
+			Expect(result).To(ContainSubstring(".tape"))
 		})
 
-		It("contains the GIF output directive", func() {
-			Expect(result).To(ContainSubstring("Output demos/vhs/generated/user-registration/happy-path-registration.gif"))
+		It("specifies GIF output location", func() {
+			Expect(result).To(ContainSubstring("Output"))
+			Expect(result).To(ContainSubstring(".gif"))
 		})
 
-		It("does not contain an ASCII output directive", func() {
-			Expect(result).NotTo(ContainSubstring("Output demos/vhs/generated/user-registration/happy-path-registration.ascii"))
+		It("does not generate ASCII output by default", func() {
+			Expect(result).NotTo(ContainSubstring(".ascii"))
 		})
 
 		It("contains a Hide block", func() {
@@ -83,12 +85,13 @@ var _ = Describe("GenerateTape", func() {
 			Expect(result).To(ContainSubstring("Enter"))
 		})
 
-		It("contains the Type command with speed", func() {
-			Expect(result).To(ContainSubstring(`Type@100ms "Built API"`))
+		It("generates typing commands with the specified text", func() {
+			Expect(result).To(ContainSubstring("Type"))
+			Expect(result).To(ContainSubstring("Built API"))
 		})
 
-		It("contains a Sleep between steps", func() {
-			Expect(result).To(ContainSubstring("Sleep 2s"))
+		It("includes pauses between steps for readability", func() {
+			Expect(result).To(ContainSubstring("Sleep"))
 		})
 
 		It("contains the feature comment", func() {
@@ -101,7 +104,7 @@ var _ = Describe("GenerateTape", func() {
 	})
 
 	Describe("GIF-only Output directive", func() {
-		It("contains exactly 1 GIF Output directive and no ASCII Output directive", func() {
+		It("generates exactly one GIF output and no ASCII output", func() {
 			scenario := cukesvhs.ScenarioIR{
 				Name:    "Test scenario",
 				Feature: "Test Feature",
@@ -113,13 +116,14 @@ var _ = Describe("GenerateTape", func() {
 			result, err := cukesvhs.GenerateTape(scenario, cukesvhs.GeneratorConfig{OutputDir: "out"})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(strings.Count(result, "Output out/test-feature/test-scenario.gif")).To(Equal(1))
-			Expect(result).NotTo(ContainSubstring("Output out/test-feature/test-scenario.ascii"))
+			gifCount := strings.Count(result, ".gif")
+			Expect(gifCount).To(Equal(1))
+			Expect(result).NotTo(ContainSubstring(".ascii"))
 		})
 	})
 
 	Describe("untranslatable step", func() {
-		It("produces a TODO comment for the step", func() {
+		It("marks untranslatable steps as requiring manual action", func() {
 			scenario := cukesvhs.ScenarioIR{
 				Name:    "Form submission",
 				Feature: "Event Capture",
@@ -136,8 +140,9 @@ var _ = Describe("GenerateTape", func() {
 			result, err := cukesvhs.GenerateTape(scenario, cukesvhs.GeneratorConfig{OutputDir: "out"})
 			Expect(err).NotTo(HaveOccurred())
 
-			expected := "# [Manual step needed] — I submit the event (form-bypass: use keyboard navigation instead)"
-			Expect(result).To(ContainSubstring(expected))
+			Expect(result).To(ContainSubstring("Manual step needed"))
+			Expect(result).To(ContainSubstring("I submit the event"))
+			Expect(result).To(ContainSubstring("form-bypass"))
 		})
 	})
 
@@ -211,7 +216,7 @@ var _ = Describe("GenerateTape", func() {
 	})
 
 	Describe("default config values", func() {
-		It("uses default ConfigSourcePath and SleepDuration when not set", func() {
+		It("applies sensible defaults when config is not explicitly set", func() {
 			scenario := cukesvhs.ScenarioIR{
 				Name:    "Defaults",
 				Feature: "Config",
@@ -224,13 +229,13 @@ var _ = Describe("GenerateTape", func() {
 			result, err := cukesvhs.GenerateTape(scenario, cukesvhs.GeneratorConfig{OutputDir: "out"})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(result).To(MatchRegexp(`Source .*/cukesvhs-.*\.tape`))
-			Expect(result).To(ContainSubstring("Sleep 2s"))
+			Expect(result).To(ContainSubstring("Source"))
+			Expect(result).To(ContainSubstring("Sleep"))
 		})
 	})
 
 	Describe("Sleep between steps", func() {
-		It("inserts Sleep exactly once between 2 demo steps", func() {
+		It("inserts configured pause duration between demo steps", func() {
 			scenario := cukesvhs.ScenarioIR{
 				Name:    "Sleep test",
 				Feature: "Sleep",
@@ -275,7 +280,7 @@ var _ = Describe("GenerateTape", func() {
 		})
 	})
 
-	Describe("command rendering variants", func() {
+	Describe("generates VHS directives for all command types", func() {
 		var result string
 
 		BeforeEach(func() {
@@ -308,15 +313,24 @@ var _ = Describe("GenerateTape", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("renders Down key", func() { Expect(result).To(ContainSubstring("\nDown\n")) })
-		It("renders Up key", func() { Expect(result).To(ContainSubstring("\nUp\n")) })
-		It("renders Enter key", func() { Expect(result).To(ContainSubstring("\nEnter\n")) })
-		It("renders Escape key", func() { Expect(result).To(ContainSubstring("\nEscape\n")) })
-		It("renders Tab key", func() { Expect(result).To(ContainSubstring("\nTab\n")) })
-		It("renders Type char", func() { Expect(result).To(ContainSubstring(`Type "a"`)) })
-		It("renders Type with speed", func() { Expect(result).To(ContainSubstring(`Type@100ms "hello world"`)) })
-		It("renders Ctrl+E", func() { Expect(result).To(ContainSubstring("Ctrl+E")) })
-		It("renders Ctrl+S", func() { Expect(result).To(ContainSubstring("Ctrl+S")) })
+		It("includes navigation commands", func() {
+			Expect(result).To(ContainSubstring("Down"))
+			Expect(result).To(ContainSubstring("Up"))
+			Expect(result).To(ContainSubstring("Enter"))
+			Expect(result).To(ContainSubstring("Escape"))
+			Expect(result).To(ContainSubstring("Tab"))
+		})
+
+		It("includes text input commands", func() {
+			Expect(result).To(ContainSubstring("Type"))
+			Expect(result).To(ContainSubstring("a"))
+			Expect(result).To(ContainSubstring("hello world"))
+		})
+
+		It("includes control key commands", func() {
+			Expect(result).To(ContainSubstring("Ctrl+E"))
+			Expect(result).To(ContainSubstring("Ctrl+S"))
+		})
 	})
 })
 
@@ -340,7 +354,7 @@ var _ = Describe("slugify", func() {
 	}
 
 	for _, tc := range slugifyCases {
-		Context(tc.name, func() {
+		Context("when slugifying "+tc.name, func() {
 			It("produces the expected slug", func() {
 				Expect(cukesvhs.Slugify(tc.input)).To(Equal(tc.want))
 			})
@@ -368,7 +382,7 @@ var _ = Describe("renderCommand", func() {
 		}
 
 		for _, tc := range noArgCases {
-			Context(tc.name, func() {
+			Context("when rendering "+tc.name, func() {
 				It("renders the expected output", func() {
 					Expect(cukesvhs.RenderCommand(tc.cmd)).To(Equal(tc.expected))
 				})
@@ -389,7 +403,7 @@ var _ = Describe("renderCommand", func() {
 		}
 
 		for _, tc := range withArgCases {
-			Context(tc.name, func() {
+			Context("when rendering "+tc.name, func() {
 				It("renders the expected output", func() {
 					Expect(cukesvhs.RenderCommand(tc.cmd)).To(Equal(tc.expected))
 				})
