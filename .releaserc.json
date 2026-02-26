@@ -51,11 +51,14 @@
     }],
     ["@semantic-release/github", {
       "assets": [
-        { "path": "dist/cukes-vhs-linux-amd64", "label": "cukes-vhs-linux-amd64" },
-        { "path": "dist/cukes-vhs-linux-arm64", "label": "cukes-vhs-linux-arm64" },
-        { "path": "dist/cukes-vhs-darwin-amd64", "label": "cukes-vhs-darwin-amd64" },
-        { "path": "dist/cukes-vhs-darwin-arm64", "label": "cukes-vhs-darwin-arm64" },
-        { "path": "dist/cukes-vhs-windows-amd64.exe", "label": "cukes-vhs-windows-amd64.exe" }
+        { "path": "dist/cukes-vhs_*_linux_amd64.tar.gz", "label": "cukes-vhs-linux-amd64.tar.gz" },
+        { "path": "dist/cukes-vhs_*_linux_arm64.tar.gz", "label": "cukes-vhs-linux-arm64.tar.gz" },
+        { "path": "dist/cukes-vhs_*_darwin_amd64.tar.gz", "label": "cukes-vhs-darwin-amd64.tar.gz" },
+        { "path": "dist/cukes-vhs_*_darwin_arm64.tar.gz", "label": "cukes-vhs-darwin-arm64.tar.gz" },
+        { "path": "dist/cukes-vhs_*_windows_amd64.zip", "label": "cukes-vhs-windows-amd64.zip" },
+        { "path": "dist/cukes-vhs_*_windows_arm64.zip", "label": "cukes-vhs-windows-arm64.zip" },
+        { "path": "dist/checksums.txt", "label": "checksums.txt" },
+        { "path": "dist/*.sbom.json", "label": "sbom-files" }
       ],
       "successComment": false,
       "failComment": false,
