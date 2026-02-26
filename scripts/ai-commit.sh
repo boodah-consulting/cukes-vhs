@@ -238,32 +238,7 @@ fi
 
 # Auto-detect AI agent from environment
 detect_ai_agent() {
-    # Check for explicit override first
-    if [ -n "$AI_AGENT" ]; then
-        echo "$AI_AGENT"
-        return
-    fi
-    
-    # Detect Opencode (primary check)
-    if [ "$OPENCODE" = "1" ] || [ -n "$OPENCODE" ]; then
-        echo "Opencode"
-        return
-    fi
-    
-    # Detect Claude Code
-    if [ -n "$CLAUDE_CODE" ]; then
-        echo "Claude Code"
-        return
-    fi
-    
-    # Detect Cursor
-    if [ -n "$CURSOR_SESSION" ] || [ -n "$CURSOR" ]; then
-        echo "Cursor"
-        return
-    fi
-    
-    # No agent detected
-    echo ""
+    echo "Opencode"
 }
 
 # Detect model - REQUIRED, no defaults
@@ -377,7 +352,7 @@ cat > "$FINAL_MSG_FILE" <<EOF
 ${COMMIT_MSG}
 
 AI-Generated-By: ${AGENT_NAME} (${MODEL_NAME})
-Reviewed-By: ${AGENT_NAME} (${MODEL_NAME})
+Reviewed-By: ${REVIEWER_NAME} (Human)
 EOF
 
 # Build commit flags array
