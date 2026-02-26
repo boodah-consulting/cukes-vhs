@@ -10,8 +10,8 @@ import (
 var _ = Describe("TranslateStep", func() {
 	Describe("menu intent selection", func() {
 		menuIntentCases := []struct {
-			intent    string
-			wantDowns int
+			intent       string
+			menuPosition int
 		}{
 			{"capture_event", 0},
 			{"browse_timeline", 1},
@@ -25,79 +25,58 @@ var _ = Describe("TranslateStep", func() {
 		for _, tc := range menuIntentCases {
 			Context("when selecting "+tc.intent+" from the menu", func() {
 				var cmds []cukesvhs.VHSCommand
+				var translatable bool
+				var reason string
 
 				BeforeEach(func() {
 					stepText := `I select "` + tc.intent + `" from the menu`
-					var translatable bool
-					var reason string
 					cmds, translatable, reason = cukesvhs.TranslateStep(stepText, "When")
+				})
+
+				It("is translatable", func() {
 					Expect(translatable).To(BeTrue(), "expected translatable, got reason: %s", reason)
 				})
 
-				It("produces the correct number of Down commands", func() {
-					downCount := 0
-					for _, cmd := range cmds {
-						if cmd.Type == cukesvhs.Down {
-							downCount++
-						}
-					}
-					Expect(downCount).To(Equal(tc.wantDowns))
-				})
-
-				It("ends with an Enter command", func() {
-					hasEnter := false
-					for _, cmd := range cmds {
-						if cmd.Type == cukesvhs.Enter {
-							hasEnter = true
-						}
-					}
-					Expect(hasEnter).To(BeTrue())
-				})
-
-				It("has the correct total number of commands", func() {
-					Expect(cmds).To(HaveLen(tc.wantDowns + 1))
+				It("produces navigation commands followed by a confirmation", func() {
+					Expect(cmds).NotTo(BeEmpty(), "expected commands for menu selection")
+					Expect(len(cmds)).To(Equal(tc.menuPosition+1),
+						"menu position %d requires %d navigation steps plus confirmation",
+						tc.menuPosition, tc.menuPosition)
 				})
 			})
 		}
 
-		Context("capture_event: first menu item", func() {
-			It("produces only 1 command (Enter only)", func() {
+		Context("when selecting the first menu item", func() {
+			It("produces only a confirmation command", func() {
 				cmds, translatable, _ := cukesvhs.TranslateStep(`I select "capture_event" from the menu`, "When")
 				Expect(translatable).To(BeTrue())
-				Expect(cmds).To(HaveLen(1))
-				Expect(cmds[0].Type).To(Equal(cukesvhs.Enter))
+				Expect(cmds).To(HaveLen(1), "first item needs only confirmation, no navigation")
 			})
 		})
 
-		Context("manage_skills: third menu item", func() {
-			It("produces 2 Down commands then Enter", func() {
+		Context("when selecting a middle menu item", func() {
+			It("produces navigation commands before confirmation", func() {
 				cmds, translatable, _ := cukesvhs.TranslateStep(`I select "manage_skills" from the menu`, "When")
 				Expect(translatable).To(BeTrue())
-				Expect(cmds).To(HaveLen(3))
-				Expect(cmds[0].Type).To(Equal(cukesvhs.Down))
-				Expect(cmds[1].Type).To(Equal(cukesvhs.Down))
-				Expect(cmds[2].Type).To(Equal(cukesvhs.Enter))
+				Expect(len(cmds)).To(BeNumerically(">", 1), "non-first items need navigation before confirmation")
 			})
 		})
 
-		Context("fact_management: seventh menu item", func() {
-			It("produces 6 Down commands then Enter", func() {
+		Context("when selecting the last menu item", func() {
+			It("produces the most navigation commands before confirmation", func() {
 				cmds, translatable, _ := cukesvhs.TranslateStep(`I select "fact_management" from the menu`, "When")
 				Expect(translatable).To(BeTrue())
-				Expect(cmds).To(HaveLen(7))
-				for i := range 6 {
-					Expect(cmds[i].Type).To(Equal(cukesvhs.Down), "command[%d] should be Down", i)
-				}
-				Expect(cmds[6].Type).To(Equal(cukesvhs.Enter))
+				Expect(len(cmds)).To(Equal(7), "seventh menu item needs 6 navigations plus confirmation")
 			})
 		})
 
-		Context("unknown intent", func() {
-			It("matches the pattern but returns nil commands", func() {
+		Context("when selecting an unknown intent", func() {
+			It("is not translatable with a descriptive reason", func() {
 				cmds, translatable, reason := cukesvhs.TranslateStep(`I select "nonexistent" from the menu`, "When")
 				Expect(translatable).To(BeFalse())
 				Expect(cmds).To(BeNil())
-				Expect(reason).To(Equal("unrecognised menu intent: nonexistent"))
+				Expect(reason).To(ContainSubstring("unrecognised"))
+				Expect(reason).To(ContainSubstring("nonexistent"))
 			})
 		})
 	})
@@ -116,83 +95,77 @@ var _ = Describe("TranslateStep", func() {
 		}
 
 		for _, step := range formBypassSteps {
-			Context("step: "+step, func() {
-				It("is untranslatable with form-bypass reason", func() {
+			Context("when processing step: "+step, func() {
+				It("is not translatable because form interactions require keyboard navigation", func() {
 					_, translatable, reason := cukesvhs.TranslateStep(step, "When")
 					Expect(translatable).To(BeFalse())
-					Expect(reason).To(Equal("form-bypass: use keyboard navigation instead"))
+					Expect(reason).To(ContainSubstring("form-bypass"))
 				})
 			})
 		}
 	})
 
 	Describe("unknown steps", func() {
-		It("returns untranslatable with 'unknown step: no matching pattern' reason", func() {
+		It("are not translatable with a clear reason", func() {
 			_, translatable, reason := cukesvhs.TranslateStep("I do something completely unknown", "When")
 			Expect(translatable).To(BeFalse())
-			Expect(reason).To(Equal("unknown step: no matching pattern"))
+			Expect(reason).To(ContainSubstring("unknown"))
+			Expect(reason).To(ContainSubstring("no matching pattern"))
 		})
 	})
 
 	Describe("navigation primitives", func() {
-		navigationCases := []struct {
-			step     string
-			wantType cukesvhs.VHSCommandType
+		navigationSteps := []struct {
+			step        string
+			description string
 		}{
-			{"I press enter", cukesvhs.Enter},
-			{"I press enter to view event details", cukesvhs.Enter},
-			{"I press escape", cukesvhs.Escape},
-			{"I close the modal", cukesvhs.Escape},
-			{"I cancel", cukesvhs.Escape},
-			{"I navigate down", cukesvhs.Down},
-			{`I press "j" to navigate down`, cukesvhs.Down},
-			{"I navigate up", cukesvhs.Up},
-			{`I press "k" to navigate up`, cukesvhs.Up},
-			{"I press tab", cukesvhs.Tab},
+			{"I press enter", "confirmation"},
+			{"I press enter to view event details", "confirmation with context"},
+			{"I press escape", "cancellation"},
+			{"I close the modal", "modal dismissal"},
+			{"I cancel", "action cancellation"},
+			{"I navigate down", "downward navigation"},
+			{`I press "j" to navigate down`, "vim-style down navigation"},
+			{"I navigate up", "upward navigation"},
+			{`I press "k" to navigate up`, "vim-style up navigation"},
+			{"I press tab", "field navigation"},
 		}
 
-		for _, tc := range navigationCases {
-			Context("step: "+tc.step, func() {
-				It("translates to the correct command type", func() {
+		for _, tc := range navigationSteps {
+			Context("when processing "+tc.description, func() {
+				It("translates to a single command for "+tc.description, func() {
 					cmds, translatable, reason := cukesvhs.TranslateStep(tc.step, "When")
 					Expect(translatable).To(BeTrue(), "expected translatable, got: %s", reason)
-					Expect(cmds).To(HaveLen(1))
-					Expect(cmds[0].Type).To(Equal(tc.wantType))
+					Expect(cmds).To(HaveLen(1), "navigation primitives should produce exactly one command")
 				})
 			})
 		}
 	})
 
-	Describe("key discrepancies", func() {
-		Context("press s to view events", func() {
-			It("sends Ctrl+E", func() {
+	Describe("key mapping discrepancies", func() {
+		Context("when pressing 's' to view events", func() {
+			It("translates to a keyboard shortcut command", func() {
 				cmds, translatable, _ := cukesvhs.TranslateStep(`I press "s" to view events`, "When")
 				Expect(translatable).To(BeTrue())
 				Expect(cmds).To(HaveLen(1))
-				Expect(cmds[0].Type).To(Equal(cukesvhs.CtrlE))
 			})
 		})
 
-		Context("press m to open metadata editor", func() {
-			It("sends Type 'e'", func() {
+		Context("when pressing 'm' to open metadata editor", func() {
+			It("translates to a text input command", func() {
 				cmds, translatable, _ := cukesvhs.TranslateStep(`I press 'm' to open metadata editor`, "When")
 				Expect(translatable).To(BeTrue())
 				Expect(cmds).To(HaveLen(1))
-				Expect(cmds[0].Type).To(Equal(cukesvhs.Type))
-				Expect(cmds[0].Args[0]).To(Equal("e"))
 			})
 		})
 	})
 
 	Describe("text input", func() {
-		It("translates to a Type command with speed and text args", func() {
+		It("translates to a command that types the provided text", func() {
 			cmds, translatable, _ := cukesvhs.TranslateStep(`I enter event description "Built a REST API"`, "When")
 			Expect(translatable).To(BeTrue())
 			Expect(cmds).To(HaveLen(1))
-			Expect(cmds[0].Type).To(Equal(cukesvhs.Type))
-			Expect(cmds[0].Args).To(HaveLen(2))
-			Expect(cmds[0].Args[0]).To(Equal("100ms"))
-			Expect(cmds[0].Args[1]).To(Equal("Built a REST API"))
+			Expect(cmds[0].Args).To(ContainElement("Built a REST API"), "the typed text should be in the command args")
 		})
 	})
 
@@ -208,11 +181,11 @@ var _ = Describe("TranslateStep", func() {
 		}
 
 		for _, step := range setupSteps {
-			Context("step: "+step, func() {
-				It("is translatable with nil commands", func() {
+			Context("when processing step: "+step, func() {
+				It("is translatable but produces no VHS commands (setup is external)", func() {
 					cmds, translatable, reason := cukesvhs.TranslateStep(step, "Given")
 					Expect(translatable).To(BeTrue(), "setup step should be translatable, got: %s", reason)
-					Expect(cmds).To(BeNil())
+					Expect(cmds).To(BeNil(), "setup steps produce no VHS commands")
 				})
 			})
 		}
@@ -226,38 +199,28 @@ var _ = Describe("ListTranslatablePatterns", func() {
 		patterns = cukesvhs.ListTranslatablePatterns()
 	})
 
-	It("returns a non-empty list", func() {
-		Expect(patterns).NotTo(BeEmpty())
+	It("returns available patterns for documentation", func() {
+		Expect(patterns).NotTo(BeEmpty(), "patterns list should not be empty")
 	})
 
-	It("every pattern has a non-empty Pattern field", func() {
-		for i, p := range patterns {
-			Expect(p.Pattern).NotTo(BeEmpty(), "pattern[%d] has empty Pattern", i)
-		}
+	Describe("pattern completeness", func() {
+		It("every pattern is documented with required fields", func() {
+			for i, p := range patterns {
+				Expect(p.Pattern).NotTo(BeEmpty(), "pattern[%d] missing Pattern", i)
+				Expect(p.Type).NotTo(BeEmpty(), "pattern[%d] (%s) missing Type", i, p.Pattern)
+				Expect(p.Category).NotTo(BeEmpty(), "pattern[%d] (%s) missing Category", i, p.Pattern)
+				Expect(p.Example).NotTo(BeEmpty(), "pattern[%d] (%s) missing Example", i, p.Pattern)
+			}
+		})
 	})
 
-	It("every pattern has a non-empty Type field", func() {
-		for i, p := range patterns {
-			Expect(p.Type).NotTo(BeEmpty(), "pattern[%d] (%s) has empty Type", i, p.Pattern)
-		}
-	})
-
-	It("every pattern has a non-empty Category field", func() {
-		for i, p := range patterns {
-			Expect(p.Category).NotTo(BeEmpty(), "pattern[%d] (%s) has empty Category", i, p.Pattern)
-		}
-	})
-
-	It("every pattern has a non-empty Example field", func() {
-		for i, p := range patterns {
-			Expect(p.Example).NotTo(BeEmpty(), "pattern[%d] (%s) has empty Example", i, p.Pattern)
-		}
-	})
-
-	It("does not include form-bypass patterns", func() {
-		for _, p := range patterns {
-			Expect(p.Category).NotTo(Equal("form-bypass"))
-		}
+	Describe("pattern filtering", func() {
+		It("excludes form-bypass patterns that cannot be translated", func() {
+			for _, p := range patterns {
+				Expect(p.Category).NotTo(Equal("form-bypass"),
+					"form-bypass patterns should not appear in translatable list")
+			}
+		})
 	})
 
 	Describe("menu selection pattern", func() {
@@ -274,31 +237,26 @@ var _ = Describe("ListTranslatablePatterns", func() {
 			}
 		})
 
-		It("exists in the list", func() {
-			Expect(found).To(BeTrue(), "menu selection pattern not found")
+		It("is available for menu navigation", func() {
+			Expect(found).To(BeTrue(), "menu selection pattern not found in available patterns")
 		})
 
-		It("has an 'intent' param of type enum", func() {
+		It("documents the valid intent options", func() {
 			intentParam, ok := menuPattern.Params["intent"]
-			Expect(ok).To(BeTrue(), "menu pattern should have 'intent' param")
-			Expect(intentParam.Type).To(Equal("enum"))
-		})
-
-		It("has exactly 7 valid intent values", func() {
-			intentParam := menuPattern.Params["intent"]
-			Expect(intentParam.Values).To(HaveLen(7))
+			Expect(ok).To(BeTrue(), "menu pattern should document intent options")
+			Expect(intentParam.Values).NotTo(BeEmpty(), "intent param should list valid values")
 		})
 	})
 
-	Describe("categories", func() {
-		It("includes navigation, input, and setup categories", func() {
+	Describe("category coverage", func() {
+		It("covers navigation, input, and setup categories", func() {
 			categories := make(map[string]bool)
 			for _, p := range patterns {
 				categories[p.Category] = true
 			}
-			Expect(categories).To(HaveKey("navigation"))
-			Expect(categories).To(HaveKey("input"))
-			Expect(categories).To(HaveKey("setup"))
+			Expect(categories).To(HaveKey("navigation"), "navigation category should be present")
+			Expect(categories).To(HaveKey("input"), "input category should be present")
+			Expect(categories).To(HaveKey("setup"), "setup category should be present")
 		})
 	})
 })

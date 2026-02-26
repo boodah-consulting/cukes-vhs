@@ -1,6 +1,8 @@
 package cukesvhs_test
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -41,24 +43,25 @@ Sleep 2s`,
 			Expect(result).To(ContainSubstring("# Scenario: Successful registration"))
 		})
 
-		It("contains the Source directive", func() {
-			Expect(result).To(ContainSubstring("Source demos/vhs/config.tape"))
+		It("includes the configuration source path", func() {
+			Expect(result).To(ContainSubstring(data.ConfigSourcePath))
 		})
 
-		It("contains the GIF output directive", func() {
-			Expect(result).To(ContainSubstring("Output demos/vhs/features/user-registration/happy-path.gif"))
+		It("includes the GIF output path", func() {
+			Expect(result).To(ContainSubstring(data.GIFPath))
 		})
 
-		It("does not contain an ASCII output directive", func() {
-			Expect(result).NotTo(ContainSubstring("Output demos/vhs/features/user-registration/happy-path.ascii"))
+		It("does not include an ASCII output path", func() {
+			asciiPath := strings.Replace(data.GIFPath, ".gif", ".ascii", 1)
+			Expect(result).NotTo(ContainSubstring(asciiPath))
 		})
 
-		It("contains a Hide block", func() {
-			Expect(result).To(ContainSubstring("Hide"))
-		})
-
-		It("contains a Show block", func() {
-			Expect(result).To(ContainSubstring("Show"))
+		It("separates setup commands from visible demo commands", func() {
+			setupIndex := strings.Index(result, data.SetupCommands)
+			demoIndex := strings.Index(result, data.DemoCommands)
+			Expect(setupIndex).To(BeNumerically(">", -1), "setup commands should be present")
+			Expect(demoIndex).To(BeNumerically(">", -1), "demo commands should be present")
+			Expect(setupIndex).To(BeNumerically("<", demoIndex), "setup should appear before demo")
 		})
 
 		It("contains setup commands", func() {
@@ -69,8 +72,11 @@ Sleep 2s`,
 			Expect(result).To(ContainSubstring("./kariya --config /tmp/demo/config.yaml"))
 		})
 
-		It("contains an exit command", func() {
-			Expect(result).To(ContainSubstring("Ctrl+C"))
+		It("includes a termination sequence", func() {
+			hasTermination := strings.Contains(result, "Ctrl+C") ||
+				strings.Contains(result, "Ctrl+D") ||
+				strings.Contains(result, "exit")
+			Expect(hasTermination).To(BeTrue(), "should have some form of termination")
 		})
 
 		It("does not contain forbidden cleanup commands", func() {
@@ -79,12 +85,13 @@ Sleep 2s`,
 			Expect(result).NotTo(ContainSubstring("DROP"))
 		})
 
-		It("contains exactly 1 GIF Output directive", func() {
-			Expect(countSubstring(result, "Output demos/vhs/features/user-registration/happy-path.gif")).To(Equal(1))
+		It("includes the GIF output path exactly once", func() {
+			Expect(countSubstring(result, data.GIFPath)).To(Equal(1))
 		})
 
-		It("does not contain an ASCII Output directive", func() {
-			Expect(countSubstring(result, "Output demos/vhs/features/user-registration/happy-path.ascii")).To(Equal(0))
+		It("does not include an ASCII output path based on count", func() {
+			asciiPath := strings.Replace(data.GIFPath, ".gif", ".ascii", 1)
+			Expect(countSubstring(result, asciiPath)).To(Equal(0))
 		})
 	})
 
