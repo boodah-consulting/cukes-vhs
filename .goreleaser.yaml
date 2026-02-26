@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# GoReleaser configuration for cukes-vhs
+# Documentation: https://goreleaser.com
+version: 2
+
+project_name: cukes-vhs
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod verify
+
+builds:
+  - id: cukes-vhs
+    main: ./cmd/cukes-vhs
+    binary: cukes-vhs
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE*
+      - README*
+      - CHANGELOG*
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+sboms:
+  - artifacts: archive
+    documents:
+      - "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.sbom.json"
+
+changelog:
+  disable: true
+
+release:
+  disable: true
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
