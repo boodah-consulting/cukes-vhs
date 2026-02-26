@@ -88,11 +88,9 @@ if echo "$COMMIT_MSG" | grep -q "AI-Generated-By:"; then
 fi
 
 # --- Validate Reviewed-By trailer if present ---
-if echo "$COMMIT_MSG" | grep -q "Reviewed-By:"; then
-  REVIEW_TRAILER=$(echo "$COMMIT_MSG" | grep "Reviewed-By:" | head -1)
-  if ! echo "$REVIEW_TRAILER" | grep -qE '^Reviewed-By: .+ \(.+\)$'; then
-    echo "ERROR: Reviewed-By trailer must match format: Reviewed-By: AgentName (Model)"
-    echo "  Got: $REVIEW_TRAILER"
+if echo "$COMMIT_MSG" | grep -q "AI-Generated-By:"; then
+  if ! echo "$COMMIT_MSG" | grep -q "Reviewed-By:"; then
+    echo "ERROR: Reviewed-By trailer is required for AI-generated commits"
     exit 1
   fi
 fi
