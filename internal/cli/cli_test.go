@@ -1674,3 +1674,143 @@ var _ = Describe("renderAndValidate with failed render results", func() {
 		Expect(errOut.String()).To(ContainSubstring("Error rendering"))
 	})
 })
+
+var _ = Describe("benchmark subcommand", func() {
+	Context("with --all flag and valid features directory", func() {
+		It("outputs JSON results to stdout", func() {
+			var out, errOut bytes.Buffer
+			code := Run([]string{
+				"benchmark",
+				"--all",
+				"--features", "testdata/features/",
+				"--scenarios-dir", "testdata/scenarios/",
+			}, &out, &errOut)
+
+			Expect(code).To(Equal(0))
+			Expect(errOut.String()).To(ContainSubstring("Benchmarked"))
+
+			outputBytes := out.Bytes()
+			if len(outputBytes) > 0 {
+				var payload map[string]interface{}
+				jsonStart := bytes.Index(outputBytes, []byte("{"))
+				if jsonStart >= 0 {
+					err := json.Unmarshal(outputBytes[jsonStart:], &payload)
+					Expect(err).NotTo(HaveOccurred())
+				}
+			}
+		})
+	})
+
+	Context("with --output flag", func() {
+		It("writes JSON results to the specified file", func() {
+			tmpDir := GinkgoT().TempDir()
+			outputFile := filepath.Join(tmpDir, "benchmark-results.json")
+
+			var out, errOut bytes.Buffer
+			code := Run([]string{
+				"benchmark",
+				"--all",
+				"--features", "testdata/features/",
+				"--scenarios-dir", "testdata/scenarios/",
+				"--output", outputFile,
+			}, &out, &errOut)
+
+			Expect(code).To(Equal(0))
+			Expect(errOut.String()).To(ContainSubstring("Benchmarked"))
+
+			_, err := os.Stat(outputFile)
+			Expect(err).NotTo(HaveOccurred())
+
+			data, err := os.ReadFile(outputFile)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(data).NotTo(BeEmpty())
+
+			var payload map[string]interface{}
+			err = json.Unmarshal(data, &payload)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("with --runs flag", func() {
+		It("accepts a custom number of benchmark runs", func() {
+			var out, errOut bytes.Buffer
+			code := Run([]string{
+				"benchmark",
+				"--all",
+				"--features", "testdata/features/",
+				"--scenarios-dir", "testdata/scenarios/",
+				"--runs", "1",
+			}, &out, &errOut)
+
+			Expect(code).To(Equal(0))
+		})
+	})
+
+	Context("without --all flag", func() {
+		It("returns exit code 1 requiring --all", func() {
+			var out, errOut bytes.Buffer
+			code := Run([]string{
+				"benchmark",
+				"--features", "testdata/features/",
+			}, &out, &errOut)
+
+			Expect(code).To(Equal(1))
+			Expect(errOut.String()).To(ContainSubstring("--all"))
+		})
+	})
+
+	Context("with non-existent features directory", func() {
+		It("returns exit code 1", func() {
+			var out, errOut bytes.Buffer
+			code := Run([]string{
+				"benchmark",
+				"--all",
+				"--features", "/nonexistent/features/",
+				"--scenarios-dir", "/nonexistent/scenarios/",
+			}, &out, &errOut)
+
+			Expect(code).To(Equal(1))
+		})
+	})
+
+	Context("unknown flag", func() {
+		It("returns exit code 1 with error message", func() {
+			var out, errOut bytes.Buffer
+			code := Run([]string{"benchmark", "--unknown-flag-xyz"}, &out, &errOut)
+
+			Expect(code).To(Equal(1))
+			Expect(errOut.String()).To(ContainSubstring("unknown flag"))
+		})
+	})
+
+	Context("summary output", func() {
+		It("prints benchmarked count to stderr", func() {
+			var out, errOut bytes.Buffer
+			Run([]string{
+				"benchmark",
+				"--all",
+				"--features", "testdata/features/",
+				"--scenarios-dir", "testdata/scenarios/",
+			}, &out, &errOut)
+
+			Expect(errOut.String()).To(MatchRegexp(`Benchmarked \d+ commands across \d+ scenarios`))
+		})
+	})
+
+	Context("with empty features directory", func() {
+		It("exits 0 with zero benchmarks", func() {
+			emptyDir := GinkgoT().TempDir()
+
+			var out, errOut bytes.Buffer
+			code := Run([]string{
+				"benchmark",
+				"--all",
+				"--features", emptyDir,
+				"--scenarios-dir", emptyDir,
+			}, &out, &errOut)
+
+			Expect(code).To(Equal(0))
+			Expect(errOut.String()).To(ContainSubstring("Benchmarked 0 commands across 0 scenarios"))
+		})
+	})
+})

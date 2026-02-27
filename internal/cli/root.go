@@ -64,6 +64,7 @@ automated terminal recordings using charmbracelet/vhs.`,
 	cmd.AddCommand(newRunCmd())
 	cmd.AddCommand(newUpdateBaselineCmd())
 	cmd.AddCommand(newCompletionCmd())
+	cmd.AddCommand(newBenchmarkCmd())
 
 	return cmd
 }
