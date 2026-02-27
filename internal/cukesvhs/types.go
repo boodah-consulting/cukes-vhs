@@ -1,5 +1,7 @@
 package cukesvhs
 
+import "time"
+
 // SourceType indicates where a scenario originates.
 type SourceType string
 
@@ -56,6 +58,7 @@ type StepIR struct {
 	Commands             []VHSCommand
 	Translatable         bool
 	UntranslatableReason string
+	Duration             time.Duration
 }
 
 // ScenarioIR represents an intermediate representation of a Gherkin scenario.
