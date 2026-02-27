@@ -1,0 +1,15 @@
+# Feature: {{.FeatureName}}
+# Scenario: {{.ScenarioName}}
+
+Source "{{.ConfigSourcePath}}"
+
+Output "{{.GIFPath}}"
+
+Hide
+{{.SetupCommands}}
+Show
+
+{{.DemoCommands}}
+
+Sleep 3s
+Ctrl+C

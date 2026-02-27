@@ -33,7 +33,7 @@ jobs:
       - name: Run go vet
         run: go vet ./...
       - name: Install staticcheck
-        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+        run: go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
       - name: Run staticcheck
         run: staticcheck ./...
       - name: Install Ginkgo
@@ -58,7 +58,7 @@ jobs:
         with:
           distribution: goreleaser
           version: '~> v2'
-          args: release --snapshot --clean
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4

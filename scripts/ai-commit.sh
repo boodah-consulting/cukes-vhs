@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 # ============================================================================
 # AI Commit Helper
@@ -238,32 +238,7 @@ fi
 
 # Auto-detect AI agent from environment
 detect_ai_agent() {
-    # Check for explicit override first
-    if [ -n "$AI_AGENT" ]; then
-        echo "$AI_AGENT"
-        return
-    fi
-    
-    # Detect Opencode (primary check)
-    if [ "$OPENCODE" = "1" ] || [ -n "$OPENCODE" ]; then
-        echo "Opencode"
-        return
-    fi
-    
-    # Detect Claude Code
-    if [ -n "$CLAUDE_CODE" ]; then
-        echo "Claude Code"
-        return
-    fi
-    
-    # Detect Cursor
-    if [ -n "$CURSOR_SESSION" ] || [ -n "$CURSOR" ]; then
-        echo "Cursor"
-        return
-    fi
-    
-    # No agent detected
-    echo ""
+    echo "Opencode"
 }
 
 # Detect model - REQUIRED, no defaults
@@ -345,13 +320,15 @@ if [ -z "$MODEL_NAME" ]; then
     exit 1
 fi
 
-# Get reviewer name from git config
+# Get reviewer name and email from git config
 REVIEWER_NAME=$(git config user.name)
+REVIEWER_EMAIL=$(git config user.email)
 
-if [ -z "$REVIEWER_NAME" ]; then
-    echo -e "${YELLOW}⚠️  Warning: git user.name not set${NC}"
-    echo "Set it with: git config user.name \"Your Name\""
-    REVIEWER_NAME="Unknown"
+if [ -z "$REVIEWER_NAME" ] || [ -z "$REVIEWER_EMAIL" ]; then
+    echo -e "${YELLOW}⚠️  Warning: git user.name or user.email not set${NC}"
+    echo "Set them with: git config user.name \"Your Name\" && git config user.email \"your.email@example.com\""
+    REVIEWER_NAME="${REVIEWER_NAME:-Unknown}"
+    REVIEWER_EMAIL="${REVIEWER_EMAIL:-unknown@example.com}"
 fi
 
 # ============================================================================
@@ -373,29 +350,30 @@ echo ""
 # Build full commit message with attribution
 FINAL_MSG_FILE=$(mktemp)
 
-cat > "$FINAL_MSG_FILE" << EOF
+cat > "$FINAL_MSG_FILE" <<EOF
 ${COMMIT_MSG}
 
 AI-Generated-By: ${AGENT_NAME} (${MODEL_NAME})
-Reviewed-By: ${REVIEWER_NAME}
+Reviewed-By: ${REVIEWER_NAME} <${REVIEWER_EMAIL}>
 EOF
 
-# Build commit flags
-COMMIT_FLAGS="-F $FINAL_MSG_FILE"
+# Build commit flags array
+COMMIT_FLAGS=()
+COMMIT_FLAGS+=("-F" "$FINAL_MSG_FILE")
 
 # Add --amend flag if in AMEND mode
 if [ "$AMEND" = "1" ]; then
-    COMMIT_FLAGS="$COMMIT_FLAGS --amend"
+    COMMIT_FLAGS+=("--amend")
 fi
 
 # Add --no-verify flag if NO_VERIFY is set
 if [ "$NO_VERIFY" = "1" ]; then
     echo -e "${YELLOW}⚠️  Skipping pre-commit hooks (--no-verify)${NC}"
     echo ""
-    COMMIT_FLAGS="$COMMIT_FLAGS --no-verify"
+    COMMIT_FLAGS+=("--no-verify")
 fi
 
-if git commit $COMMIT_FLAGS; then
+if git commit "${COMMIT_FLAGS[@]}"; then
     echo ""
     if [ "$AMEND" = "1" ]; then
         echo -e "${GREEN}✅ Commit amended successfully${NC}"

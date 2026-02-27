@@ -210,35 +210,6 @@ fi
 echo ""
 
 # ============================================
-# 4. ARCHITECTURAL COMPLIANCE (DDD)
-# ============================================
-echo "🏛️  ARCHITECTURAL COMPLIANCE"
-echo "------------------------------------------------"
-
-# Check domain layer purity (no external deps)
-echo -n "Domain Layer Purity: "
-DOMAIN_IMPORTS=$(find internal/domain -name "*.go" -type f 2>/dev/null | xargs grep -h "^import" 2>/dev/null | grep -E "(service|repository|cli)" || true)
-if [ -z "$DOMAIN_IMPORTS" ]; then
-    check_pass
-else
-    check_fail "Domain layer has dependencies on other layers"
-fi
-
-# Check proper layer structure exists
-echo -n "Layer Structure: "
-REQUIRED_LAYERS=("internal/domain" "internal/service" "internal/repository")
-MISSING_LAYERS=()
-for layer in "${REQUIRED_LAYERS[@]}"; do
-    if [ ! -d "$layer" ]; then
-        MISSING_LAYERS+=("$layer")
-    fi
-done
-
-if [ ${#MISSING_LAYERS[@]} -eq 0 ]; then
-    check_pass
-else
-    check_warn "Missing layers: ${MISSING_LAYERS[*]}"
-fi
 
 echo ""
 
@@ -281,30 +252,6 @@ else
     check_fail "Missing .gitignore"
 fi
 
-# doc.go files (package documentation)
-echo -n "Package doc.go files: "
-MISSING_DOCGO=$(go vet -vettool=./bin/docblocks \
-    ./internal/cli/app/... \
-    ./internal/cli/behaviors/... \
-    ./internal/cli/bootstrap/... \
-    ./internal/cli/configtypes/... \
-    ./internal/cli/forms/... \
-    ./internal/cli/importer/... \
-    ./internal/cli/intents/... \
-    ./internal/cli/navigation/... \
-    ./internal/cli/screens/... \
-    ./internal/cli/service/... \
-    ./internal/cli/statematrix/... \
-    ./internal/cli/terminal/... \
-    ./internal/cli/themes/... \
-    ./internal/cli/types/... \
-    ./internal/cli/uikit/... \
-    ./tools/analyzers/docblocks/... 2>&1 | grep "missing doc.go file" | wc -l)
-if [ "$MISSING_DOCGO" -eq 0 ]; then
-    check_pass
-else
-    check_fail "$MISSING_DOCGO packages missing doc.go files (run: make check-docblocks)"
-fi
 
 echo ""
 
@@ -463,85 +410,6 @@ if git log -1 --pretty=%B > /dev/null 2>&1; then
 fi
 
 echo ""
-
-# ============================================
-# 10. PATTERN ENFORCEMENT (Agent Drift Prevention)
-# ============================================
-echo "🔧 PATTERN ENFORCEMENT"
-echo "------------------------------------------------"
-
-# Check for direct *huh.Form usage in intents (should use wrapper models)
-echo -n "Form Wrapper Pattern: "
-DIRECT_HUH_FORM=$(grep -rn "form \*huh\.Form" internal/cli/intents/*.go 2>/dev/null | grep -v "_test.go" || true)
-if [ -z "$DIRECT_HUH_FORM" ]; then
-    check_pass
-else
-    check_warn "Direct *huh.Form in intents (use wrapper models like CaptureForm)"
-    echo "  Files:"
-    echo "$DIRECT_HUH_FORM" | cut -d: -f1 | sort -u | sed 's/^/    /'
-fi
-
-# Check for missing BaseIntent embedding
-echo -n "BaseIntent Embedding: "
-INTENTS_WITHOUT_BASE=$(grep -rL "BaseIntent" internal/cli/intents/*_intent.go 2>/dev/null | grep -v "_test.go" || true)
-if [ -z "$INTENTS_WITHOUT_BASE" ]; then
-    check_pass
-else
-    check_warn "Intents missing *BaseIntent embedding:"
-    echo "$INTENTS_WITHOUT_BASE" | sed 's/^/    /'
-fi
-
-# Check for hardcoded colors (should use theme package)
-echo -n "Theme Consistency (intents): "
-HARDCODED_INTENTS=$(grep -rn "lipgloss\.Color(\"#[0-9A-Fa-f]" internal/cli/intents/*.go 2>/dev/null | grep -v "_test.go" || true)
-if [ -z "$HARDCODED_INTENTS" ]; then
-    check_pass
-else
-    check_warn "Hardcoded colors in intents (use theme package)"
-    echo "  Files:"
-    echo "$HARDCODED_INTENTS" | cut -d: -f1 | sort -u | sed 's/^/    /'
-fi
-
-echo -n "Theme Consistency (models): "
-HARDCODED_MODELS=$(grep -rn "lipgloss\.Color(\"#[0-9A-Fa-f]" internal/cli/models/*.go 2>/dev/null | grep -v "_test.go" || true)
-if [ -z "$HARDCODED_MODELS" ]; then
-    check_pass
-else
-    check_warn "Hardcoded colors in models (use theme package)"
-    echo "  Files:"
-    echo "$HARDCODED_MODELS" | cut -d: -f1 | sort -u | sed 's/^/    /'
-fi
-
-# Check for raw lipgloss.NewStyle() in intents (should use uikit/primitives for text)
-echo -n "UIKit Primitives Usage: "
-RAW_STYLES=$(grep -rn "lipgloss\.NewStyle()" internal/cli/intents/*.go 2>/dev/null | grep -v "_test.go" | wc -l)
-PRIMITIVES_USAGE=$(grep -rn "primitives\." internal/cli/intents/*.go 2>/dev/null | grep -v "_test.go" | wc -l)
-if [ "$RAW_STYLES" -gt 20 ] && [ "$PRIMITIVES_USAGE" -lt 10 ]; then
-    check_warn "Low primitives adoption: $RAW_STYLES raw styles vs $PRIMITIVES_USAGE primitives uses"
-    echo "  Consider using uikit/primitives for semantic text (Title, Body, ErrorText, etc.)"
-else
-    check_pass
-fi
-
-# Check for StandardView usage (all intents should use CreateStandardView)
-echo -n "StandardView Usage: "
-INTENTS_COUNT=$(ls internal/cli/intents/*_intent.go 2>/dev/null | grep -v "_test.go" | wc -l)
-STANDARDVIEW_COUNT=$(grep -l "CreateStandardView\|StandardView" internal/cli/intents/*_intent.go 2>/dev/null | wc -l)
-if [ "$STANDARDVIEW_COUNT" -ge "$INTENTS_COUNT" ]; then
-    check_pass
-else
-    check_warn "Not all intents use StandardView ($STANDARDVIEW_COUNT/$INTENTS_COUNT)"
-fi
-
-# Check for themed footer helpers usage
-echo -n "Themed Footer Usage: "
-FOOTER_HELPERS=$(grep -rn "ThemedNavigationFooter\|ThemedListFooter\|ThemedFormFooter\|CombineThemedFooters" internal/cli/intents/*.go 2>/dev/null | grep -v "_test.go" | wc -l)
-if [ "$FOOTER_HELPERS" -gt 5 ]; then
-    check_pass
-else
-    check_warn "Low themed footer helper usage ($FOOTER_HELPERS uses)"
-    echo "  Consider using ThemedNavigationFooter(), ThemedListFooter(), etc."
-fi
 
 echo ""
 

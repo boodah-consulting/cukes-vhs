@@ -20,7 +20,7 @@ if [ -z "$COMMIT_SOURCE" ]; then
 
 # ⚠️  REMINDER: If AI-generated code, uncomment and fill:
 # AI-Generated-By: <Assistant Name> (<Model Version>)
-# Reviewed-By: <Your Name>
+# Reviewed-By: Your Name <your.email@example.com>
 #
 # Examples:
 #   AI-Generated-By: Avante (Claude 3.5 Sonnet)

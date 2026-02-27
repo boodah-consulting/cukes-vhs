@@ -1,0 +1,275 @@
+package cukesvhs
+
+import (
+	_ "embed"
+	"fmt"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"github.com/spf13/afero"
+)
+
+//go:embed config.tape
+var defaultConfigContent string
+
+const (
+	defaultConfigSourcePath = "config/config.tape"
+	defaultSleepDuration    = "2s"
+	manualStepMarker        = "Manual step needed"
+)
+
+// resolveConfigPath returns the config path to use, a warning message (if any), and a cleanup function.
+// If customPath is non-empty and the file exists, use it (cleanup is a no-op, warning is empty).
+// Otherwise, write embedded config to a unique temp file and return that path.
+// If customPath was provided but not found, a warning message is returned.
+// The caller must call the cleanup function to remove any temp file created.
+func resolveConfigPath(customPath string) (configPath, warning string, cleanup func(), err error) {
+	return resolveConfigPathFs(DefaultFs(), customPath)
+}
+
+// resolveConfigPathFs resolves config path using the provided filesystem.
+func resolveConfigPathFs(afs afero.Fs, customPath string) (configPath, warning string, cleanup func(), err error) {
+	if customPath != "" {
+		exists, existsErr := afero.Exists(afs, customPath)
+		if existsErr != nil {
+			return "", "", func() {}, fmt.Errorf("checking config file: %w", existsErr)
+		}
+		if exists {
+			return customPath, "", func() {}, nil
+		}
+		warning = fmt.Sprintf("Warning: config file not found at %s, using embedded default. Run 'cukes-vhs init' to create one.\n", customPath)
+	}
+
+	f, err := afero.TempFile(afs, "", "cukesvhs-*.tape")
+	if err != nil {
+		return "", "", func() {}, fmt.Errorf("creating temp config file: %w", err)
+	}
+
+	tmpPath := f.Name()
+
+	if _, writeErr := f.WriteString(defaultConfigContent); writeErr != nil {
+		closeErr := f.Close()
+		if closeErr != nil {
+			return "", "", func() {}, fmt.Errorf("closing temp file: %w", closeErr)
+		}
+		removeErr := afs.Remove(tmpPath)
+		if removeErr != nil {
+			return "", "", func() {}, fmt.Errorf("removing temp file: %w", removeErr)
+		}
+		return "", "", func() {}, fmt.Errorf("writing embedded config: %w", writeErr)
+	}
+
+	if closeErr := f.Close(); closeErr != nil {
+		removeErr := afs.Remove(tmpPath)
+		if removeErr != nil {
+			return "", "", func() {}, fmt.Errorf("removing temp file: %w", removeErr)
+		}
+		return "", "", func() {}, fmt.Errorf("closing temp config file: %w", closeErr)
+	}
+
+	cleanup = func() {
+		_ = afs.Remove(tmpPath)
+	}
+	return tmpPath, warning, cleanup, nil
+}
+
+// forbiddenPatterns returns patterns that must not appear in generated tape content.
+// Returns a fresh slice each call to prevent mutation of shared state.
+func forbiddenPatterns() []string {
+	return []string{"rm -rf", "DELETE", "DROP"}
+}
+
+// GenerateTape produces VHS tape file content from a ScenarioIR and GeneratorConfig.
+//
+// Expected: scenario with populated setup/demo steps, config with OutputDir set.
+// Returns: rendered tape content as string, or error if rendering or validation fails.
+// Side effects: May create a temporary config file (cleaned up before returning).
+func GenerateTape(scenario ScenarioIR, config GeneratorConfig) (string, error) {
+	return GenerateTapeFs(DefaultFs(), scenario, config)
+}
+
+// GenerateTapeFs produces VHS tape file content using the provided filesystem.
+func GenerateTapeFs(afs afero.Fs, scenario ScenarioIR, config GeneratorConfig) (string, error) {
+	configSourcePath := config.ConfigSourcePath
+	if configSourcePath == "" {
+		configSourcePath = defaultConfigSourcePath
+	}
+
+	resolvedConfigPath, warning, cleanup, err := resolveConfigPathFs(afs, configSourcePath)
+	if err != nil {
+		return "", err
+	}
+	defer cleanup()
+	_ = warning
+
+	sleepDuration := config.SleepDuration
+	if sleepDuration == "" {
+		sleepDuration = defaultSleepDuration
+	}
+
+	featureSlug := Slugify(scenario.Feature)
+	scenarioSlug := Slugify(scenario.Name)
+
+	data := TapeData{
+		FeatureName:      scenario.Feature,
+		ScenarioName:     scenario.Name,
+		GIFPath:          filepath.ToSlash(filepath.Join(config.OutputDir, featureSlug, scenarioSlug+".gif")),
+		ConfigSourcePath: filepath.ToSlash(resolvedConfigPath),
+		SetupCommands:    renderSteps(scenario.SetupSteps, sleepDuration),
+		DemoCommands:     renderSteps(scenario.DemoSteps, sleepDuration),
+	}
+
+	result, err := RenderTape(data)
+	if err != nil {
+		return "", fmt.Errorf("generating tape for %q: %w", scenario.Name, err)
+	}
+
+	if err := validateOutput(result); err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+// WriteTape generates tape content and writes it to a file.
+//
+// Expected: scenario and config with valid OutputDir.
+// Returns: error if generation or file writing fails.
+// Side effects: Creates directories and writes tape file to disk.
+func WriteTape(scenario ScenarioIR, config GeneratorConfig) error {
+	return WriteTapeFs(DefaultFs(), scenario, config)
+}
+
+// WriteTapeFs generates tape content and writes it using the provided filesystem.
+func WriteTapeFs(afs afero.Fs, scenario ScenarioIR, config GeneratorConfig) error {
+	content, err := GenerateTapeFs(afs, scenario, config)
+	if err != nil {
+		return err
+	}
+
+	featureSlug := Slugify(scenario.Feature)
+	scenarioSlug := Slugify(scenario.Name)
+	dir := filepath.Join(config.OutputDir, featureSlug)
+
+	if err := afs.MkdirAll(dir, 0o750); err != nil {
+		return fmt.Errorf("creating output directory %q: %w", dir, err)
+	}
+
+	outPath := filepath.Join(dir, scenarioSlug+".tape")
+
+	if err := afero.WriteFile(afs, outPath, []byte(content), 0o600); err != nil {
+		return fmt.Errorf("writing tape file %q: %w", outPath, err)
+	}
+
+	return nil
+}
+
+func renderSteps(steps []StepIR, sleepDuration string) string {
+	var lines []string
+	lastHadCommands := false
+
+	for _, step := range steps {
+		if !step.Translatable {
+			lines = append(lines, fmt.Sprintf(
+				"# [%s] — %s (%s)",
+				manualStepMarker, step.Text, step.UntranslatableReason,
+			))
+			lastHadCommands = false
+
+			continue
+		}
+
+		if len(step.Commands) == 0 {
+			continue
+		}
+
+		if lastHadCommands && !stepHasSleep(step) {
+			lines = append(lines, "Sleep "+sleepDuration)
+		}
+
+		for _, cmd := range step.Commands {
+			lines = append(lines, renderCommand(cmd))
+		}
+
+		if step.Duration != 0 && step.StepType == "When" {
+			lines = append(lines, "Sleep "+step.Duration.String())
+		}
+
+		lastHadCommands = true
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func stepHasSleep(step StepIR) bool {
+	for _, cmd := range step.Commands {
+		if cmd.Type == Sleep {
+			return true
+		}
+	}
+
+	return false
+}
+
+func renderCommand(cmd VHSCommand) string {
+	switch cmd.Type {
+	case Type:
+		if len(cmd.Args) >= 2 {
+			return fmt.Sprintf("Type@%s %q", cmd.Args[0], cmd.Args[1])
+		}
+
+		if len(cmd.Args) == 1 {
+			return fmt.Sprintf("Type %q", cmd.Args[0])
+		}
+
+		return "Type"
+	case Sleep:
+		if len(cmd.Args) >= 1 {
+			return "Sleep " + cmd.Args[0]
+		}
+
+		return "Sleep 1s"
+	default:
+		if len(cmd.Args) >= 1 {
+			return fmt.Sprintf("%s %s", string(cmd.Type), cmd.Args[0])
+		}
+
+		return string(cmd.Type)
+	}
+}
+
+func validateOutput(content string) error {
+	for _, pattern := range forbiddenPatterns() {
+		if strings.Contains(content, pattern) {
+			return fmt.Errorf("generated tape contains forbidden pattern: %q", pattern)
+		}
+	}
+
+	return nil
+}
+
+// slugStripRe and slugCollapseRe are compiled once at package init and never
+// reassigned thereafter. *regexp.Regexp is safe for concurrent reads.
+var (
+	slugStripRe    = regexp.MustCompile(`[^a-z0-9-]`)
+	slugCollapseRe = regexp.MustCompile(`-{2,}`)
+)
+
+// Slugify converts a string to a URL-safe slug.
+func Slugify(s string) string {
+	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, " ", "-")
+	s = strings.ReplaceAll(s, "_", "-")
+	s = slugStripRe.ReplaceAllString(s, "")
+	s = slugCollapseRe.ReplaceAllString(s, "-")
+	s = strings.Trim(s, "-")
+
+	return s
+}
+
+// DefaultConfig returns the embedded default VHS config content.
+// This can be used to generate a config file for customisation.
+func DefaultConfig() string {
+	return defaultConfigContent
+}
