@@ -215,6 +215,13 @@ func buildMatchers() []stepMatcher {
 			`I have an event "Built API" at company "Acme"`),
 		setupMatcher(`^I have \d+ events that use skill`,
 			`I have 3 events that use skill "Go"`),
+
+		observationMatcher(`^I should see the (.+) output$`,
+			`I should see the generation output`, "2s"),
+		observationMatcher(`^the command should complete successfully$`,
+			`the command should complete successfully`, "3s"),
+		observationMatcher(`^I should see "([^"]*)"$`,
+			`I should see "Written: 3 tapes"`, "2s"),
 	}
 }
 
@@ -287,5 +294,18 @@ func setupMatcher(pattern, example string) stepMatcher {
 		stepType:     "Given",
 		example:      example,
 		translate:    func(_ []string) []VHSCommand { return nil },
+	}
+}
+
+func observationMatcher(pattern, example, sleepDuration string) stepMatcher {
+	return stepMatcher{
+		pattern:      regexp.MustCompile(pattern),
+		translatable: true,
+		category:     "observation",
+		stepType:     "Then",
+		example:      example,
+		translate: func(_ []string) []VHSCommand {
+			return []VHSCommand{{Type: Sleep, Args: []string{sleepDuration}}}
+		},
 	}
 }

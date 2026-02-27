@@ -7,10 +7,13 @@ Feature: Generate VHS tape files
     When I type "./cukes-vhs generate --all --output /tmp/tapes/"
     And I press enter
 
+    Then I should see the generation output
   Scenario: Generate tapes for a specific feature
     When I type "./cukes-vhs generate --feature 'List available scenarios' --output /tmp/tapes/"
     And I press enter
+    Then I should see the generation output
 
   Scenario: Generate tapes with verbose output
     When I type "./cukes-vhs generate --all --output /tmp/tapes/ --verbose"
     And I press enter
+    Then I should see the verbose output

@@ -7,10 +7,13 @@ Feature: Run generated tapes
     When I type "./cukes-vhs run --scenario 'list all translatable scenarios' --output demos/"
     And I press enter
 
+    Then the command should complete successfully
   Scenario: Run all tapes
     When I type "./cukes-vhs run --all --output demos/"
     And I press enter
+    Then the command should complete successfully
 
   Scenario: Run tapes with verbose output
     When I type "./cukes-vhs run --all --output demos/ --verbose"
     And I press enter
+    Then I should see the verbose output

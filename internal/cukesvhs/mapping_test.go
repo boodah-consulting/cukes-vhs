@@ -140,6 +140,57 @@ var _ = Describe("TranslateStep", func() {
 			})
 		}
 	})
+
+	Describe("Then steps (observation)", func() {
+		DescribeTable("output observation steps",
+			func(step string) {
+				cmds, translatable, reason := cukesvhs.TranslateStep(step, "Then")
+				Expect(translatable).To(BeTrue(), "expected translatable, got reason: %s", reason)
+				Expect(cmds).To(HaveLen(1), "observation steps should produce exactly one command")
+				Expect(cmds[0].Type).To(Equal(cukesvhs.Sleep))
+			},
+			Entry("generation output", "I should see the generation output"),
+			Entry("run output", "I should see the run output"),
+			Entry("verbose output", "I should see the verbose output"),
+		)
+
+		Context("when observing command completion", func() {
+			It("translates to a sleep command with longer duration", func() {
+				cmds, translatable, reason := cukesvhs.TranslateStep("the command should complete successfully", "Then")
+				Expect(translatable).To(BeTrue(), "expected translatable, got reason: %s", reason)
+				Expect(cmds).To(HaveLen(1))
+				Expect(cmds[0].Type).To(Equal(cukesvhs.Sleep))
+				Expect(cmds[0].Args).To(ContainElement("3s"))
+			})
+		})
+
+		Context("when observing specific output text", func() {
+			It("translates to a sleep command", func() {
+				cmds, translatable, reason := cukesvhs.TranslateStep(`I should see "Written: 3 tapes"`, "Then")
+				Expect(translatable).To(BeTrue(), "expected translatable, got reason: %s", reason)
+				Expect(cmds).To(HaveLen(1))
+				Expect(cmds[0].Type).To(Equal(cukesvhs.Sleep))
+			})
+		})
+
+		Context("when step type is not Then", func() {
+			It("does not match output observation patterns", func() {
+				_, translatable, _ := cukesvhs.TranslateStep("I should see the generation output", "When")
+				Expect(translatable).To(BeFalse())
+			})
+		})
+
+		DescribeTable("observation step sleep durations",
+			func(step string, expectedDuration string) {
+				cmds, translatable, reason := cukesvhs.TranslateStep(step, "Then")
+				Expect(translatable).To(BeTrue(), "expected translatable, got reason: %s", reason)
+				Expect(cmds[0].Args).To(ContainElement(expectedDuration))
+			},
+			Entry("output observation uses 2s", "I should see the generation output", "2s"),
+			Entry("command completion uses 3s", "the command should complete successfully", "3s"),
+			Entry("specific text observation uses 2s", `I should see "some text"`, "2s"),
+		)
+	})
 })
 
 var _ = Describe("ListTranslatablePatterns", func() {
@@ -199,7 +250,7 @@ var _ = Describe("ListTranslatablePatterns", func() {
 	})
 
 	Describe("category coverage", func() {
-		It("covers navigation, input, and setup categories", func() {
+		It("covers navigation, input, setup, and observation categories", func() {
 			categories := make(map[string]bool)
 			for _, p := range patterns {
 				categories[p.Category] = true
@@ -207,6 +258,7 @@ var _ = Describe("ListTranslatablePatterns", func() {
 			Expect(categories).To(HaveKey("navigation"), "navigation category should be present")
 			Expect(categories).To(HaveKey("input"), "input category should be present")
 			Expect(categories).To(HaveKey("setup"), "setup category should be present")
+			Expect(categories).To(HaveKey("observation"), "observation category should be present")
 		})
 	})
 })
