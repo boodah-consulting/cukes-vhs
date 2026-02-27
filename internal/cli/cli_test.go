@@ -239,7 +239,6 @@ var _ = Describe("cukesvhs CLI", func() {
 
 		Context("--all flag", func() {
 			It("generates tape files and shows summary", func() {
-				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				code := Run([]string{
 					"generate",
@@ -249,16 +248,15 @@ var _ = Describe("cukesvhs CLI", func() {
 					"--output", tmpDir,
 				}, &out, &errOut)
 
-				Expect(code).To(Equal(1), "expected exit code 1 due to render failures in test environment")
+				Expect(code).To(Equal(0))
 				output := out.String()
 				Expect(output).To(ContainSubstring("Parsing..."))
 				Expect(output).To(ContainSubstring("Generating..."))
-				Expect(output).To(ContainSubstring("Rendering..."))
+				Expect(output).NotTo(ContainSubstring("Rendering..."))
 				Expect(output).To(MatchRegexp(`Generated \d+ tapes`))
 			})
 
-			It("runs without error even when all scenarios are untranslatable", func() {
-				skipIfNoVHS()
+			It("does not invoke VHS rendering", func() {
 				var out, errOut bytes.Buffer
 				code := Run([]string{
 					"generate",
@@ -268,11 +266,48 @@ var _ = Describe("cukesvhs CLI", func() {
 					"--output", tmpDir,
 				}, &out, &errOut)
 
-				Expect(code).To(Equal(1), "expected exit code 1 due to render failures in test environment")
+				Expect(code).To(Equal(0))
+				output := out.String()
+				Expect(output).NotTo(ContainSubstring("Rendering..."))
+				Expect(errOut.String()).NotTo(ContainSubstring("render"))
+			})
+
+			It("outputs only parsing, generating, written, and summary lines", func() {
+				var out, errOut bytes.Buffer
+				Run([]string{
+					"generate",
+					"--all",
+					"--features", "testdata/features/",
+					"--scenarios-dir", "testdata/scenarios/",
+					"--output", tmpDir,
+				}, &out, &errOut)
+
+				lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+				for _, line := range lines {
+					Expect(line).To(SatisfyAny(
+						Equal("Parsing..."),
+						Equal("Generating..."),
+						HavePrefix("Written:"),
+						MatchRegexp(`^Generated \d+ tapes`),
+						HavePrefix("Skipping"),
+					))
+				}
+			})
+
+			It("runs without error even when all scenarios are untranslatable", func() {
+				var out, errOut bytes.Buffer
+				code := Run([]string{
+					"generate",
+					"--all",
+					"--features", "testdata/features/",
+					"--scenarios-dir", "testdata/scenarios/",
+					"--output", tmpDir,
+				}, &out, &errOut)
+
+				Expect(code).To(Equal(0))
 			})
 
 			It("reports 'Written: <path>' for each tape file written", func() {
-				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				Run([]string{
 					"generate",
@@ -295,7 +330,6 @@ var _ = Describe("cukesvhs CLI", func() {
 
 		Context("bare 'all' positional argument", func() {
 			It("treats 'all' as --all and generates tapes", func() {
-				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				code := Run([]string{
 					"generate",
@@ -305,14 +339,13 @@ var _ = Describe("cukesvhs CLI", func() {
 					"--output", tmpDir,
 				}, &out, &errOut)
 
-				Expect(code).To(Equal(1), "expected exit code 1 due to render failures in test environment")
+				Expect(code).To(Equal(0))
 				Expect(out.String()).To(MatchRegexp(`Generated \d+ tapes`))
 			})
 		})
 
 		Context("--feature flag", func() {
 			It("filters by feature name (case-insensitive) and shows summary", func() {
-				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				code := Run([]string{
 					"generate",
@@ -322,14 +355,13 @@ var _ = Describe("cukesvhs CLI", func() {
 					"--output", tmpDir,
 				}, &out, &errOut)
 
-				Expect(code).To(Equal(1), "expected exit code 1 due to render failures in test environment")
+				Expect(code).To(Equal(0))
 				Expect(out.String()).To(MatchRegexp(`Generated \d+ tapes`))
 			})
 		})
 
 		Context("--scenario flag", func() {
 			It("filters by scenario name", func() {
-				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				code := Run([]string{
 					"generate",
@@ -339,14 +371,13 @@ var _ = Describe("cukesvhs CLI", func() {
 					"--output", tmpDir,
 				}, &out, &errOut)
 
-				Expect(code).To(Equal(1), "expected exit code 1 due to render failures in test environment")
+				Expect(code).To(Equal(0))
 				Expect(out.String()).To(MatchRegexp(`Generated \d+ tapes`))
 			})
 		})
 
 		Context("output summary format", func() {
 			It("shows summary with from features, from scenarios, and warnings counts", func() {
-				skipIfNoVHS()
 				var out, errOut bytes.Buffer
 				Run([]string{
 					"generate",
@@ -359,6 +390,38 @@ var _ = Describe("cukesvhs CLI", func() {
 				Expect(out.String()).To(MatchRegexp(
 					`Generated \d+ tapes \(\d+ from features, \d+ from scenarios, \d+ warnings\)`,
 				))
+			})
+		})
+
+		Context("rendering-only flags", func() {
+			It("does not accept --binary-path flag", func() {
+				var out, errOut bytes.Buffer
+				code := Run([]string{
+					"generate",
+					"--all",
+					"--features", "testdata/features/",
+					"--scenarios-dir", "testdata/scenarios/",
+					"--output", tmpDir,
+					"--binary-path", "/usr/bin/vhs",
+				}, &out, &errOut)
+
+				Expect(code).To(Equal(1))
+				Expect(errOut.String()).To(ContainSubstring("unknown flag"))
+			})
+
+			It("does not accept --timeout flag", func() {
+				var out, errOut bytes.Buffer
+				code := Run([]string{
+					"generate",
+					"--all",
+					"--features", "testdata/features/",
+					"--scenarios-dir", "testdata/scenarios/",
+					"--output", tmpDir,
+					"--timeout", "60",
+				}, &out, &errOut)
+
+				Expect(code).To(Equal(1))
+				Expect(errOut.String()).To(ContainSubstring("unknown flag"))
 			})
 		})
 	})

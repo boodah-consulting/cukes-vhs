@@ -20,8 +20,6 @@ func newGenerateCmd() *cobra.Command {
 	var outputDir string
 	var configSource string
 	var verbose bool
-	var timeoutSec int
-	var binaryPath string
 
 	cmd := &cobra.Command{
 		Use:   "generate",
@@ -76,35 +74,8 @@ or scenario name.`,
 				errOut:       errOut,
 			}
 			stats := generateTapes(filtered, cfg)
-
-			var renderFailed bool
-			if stats.total > 0 {
-				fmt.Fprintf(out, "Rendering...\n")
-
-				renderer := cukesvhs.NewRenderer(binaryPath)
-				timeout := pipelineTimeout(timeoutSec)
-
-				renderResults, renderErr := renderer.RenderAll(outputDir, timeout)
-				if renderErr != nil {
-					fmt.Fprintf(errOut, "Error rendering tapes: %v\n", renderErr)
-					renderFailed = true
-				} else {
-					for _, r := range renderResults {
-						if !r.Success {
-							fmt.Fprintf(errOut, "Render failed for %s: %s\n", r.TapePath, r.Error)
-							renderFailed = true
-						}
-					}
-				}
-			}
-
 			fmt.Fprintf(out, "Generated %d tapes (%d from features, %d from scenarios, %d warnings)\n",
 				stats.total, stats.fromBusiness, stats.fromVHSOnly, stats.warnings)
-
-			if renderFailed {
-				return errors.New("render failed")
-			}
-
 			return nil
 		},
 	}
@@ -117,8 +88,6 @@ or scenario name.`,
 	cmd.Flags().StringVar(&outputDir, "output", "", "Output directory (required)")
 	cmd.Flags().StringVar(&configSource, "config-source", "config/config.tape", "Path to config tape file")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "Verbose output")
-	cmd.Flags().IntVar(&timeoutSec, "timeout", 120, "Per-tape render timeout in seconds")
-	cmd.Flags().StringVar(&binaryPath, "binary-path", "", "Path to vhs binary (default: vhs in PATH)")
 
 	return cmd
 }
@@ -132,8 +101,6 @@ type generateOptions struct {
 	outputDir      *string
 	configSource   *string
 	verbose        *bool
-	timeoutSec     *int
-	binaryPath     *string
 }
 
 func parseGenerateFlags(args []string, errOut io.Writer) (*generateOptions, error) {
@@ -151,8 +118,6 @@ func parseGenerateFlags(args []string, errOut io.Writer) (*generateOptions, erro
 		outputDir:      new(string),
 		configSource:   new(string),
 		verbose:        new(bool),
-		timeoutSec:     new(int),
-		binaryPath:     new(string),
 	}
 
 	if err := cmd.ParseFlags(normaliseArgs(args)); err != nil {
@@ -190,14 +155,6 @@ func parseGenerateFlags(args []string, errOut io.Writer) (*generateOptions, erro
 		return nil, err
 	}
 	*opts.verbose, err = cmd.Flags().GetBool("verbose")
-	if err != nil {
-		return nil, err
-	}
-	*opts.timeoutSec, err = cmd.Flags().GetInt("timeout")
-	if err != nil {
-		return nil, err
-	}
-	*opts.binaryPath, err = cmd.Flags().GetString("binary-path")
 	if err != nil {
 		return nil, err
 	}
