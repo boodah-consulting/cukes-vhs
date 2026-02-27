@@ -97,3 +97,38 @@ func isCLIInvocation(text string) bool {
 	}
 	return false
 }
+
+// ApplyBenchmarkTimings populates Duration on When demo steps whose commands
+// match entries in the provided timing map. Duration is set to the sum of all
+// matching command timings with a buffer for terminal rendering overhead.
+// SetupSteps and Then steps are not modified.
+func ApplyBenchmarkTimings(scenario *ScenarioIR, timings map[string]CommandTiming) {
+	for i := range scenario.DemoSteps {
+		step := &scenario.DemoSteps[i]
+		if step.StepType != "When" {
+			continue
+		}
+
+		var total time.Duration
+		for _, cmd := range step.Commands {
+			if cmd.Type != Type {
+				continue
+			}
+			if len(cmd.Args) < 2 {
+				continue
+			}
+			text := cmd.Args[len(cmd.Args)-1]
+			if timing, ok := timings[text]; ok {
+				total += timing.Duration
+			}
+		}
+
+		if total > 0 {
+			step.Duration = applyBuffer(total)
+		}
+	}
+}
+
+func applyBuffer(d time.Duration) time.Duration {
+	return time.Duration(float64(d)*1.2) + 500*time.Millisecond
+}

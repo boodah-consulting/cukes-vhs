@@ -382,16 +382,67 @@ var _ = Describe("renderCommand", func() {
 })
 
 var _ = Describe("renderSteps", func() {
-	Describe("per-step Duration", func() {
+	Describe("post-command benchmark wait for When steps", func() {
+		Context("when a When step has Duration set", func() {
+			It("inserts post-command sleep for When steps with benchmark duration", func() {
+				steps := []cukesvhs.StepIR{
+					{Text: "I run the command", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Type, Args: []string{"100ms", "./cukes-vhs generate --all"}}}, Duration: 5 * time.Second},
+				}
+				result := cukesvhs.RenderSteps(steps, "2s")
+				lines := strings.Split(result, "\n")
+				Expect(lines[len(lines)-1]).To(Equal("Sleep 5s"))
+			})
+
+			It("does not insert post-command sleep for When steps without duration", func() {
+				steps := []cukesvhs.StepIR{
+					{Text: "I press enter", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}}},
+				}
+				result := cukesvhs.RenderSteps(steps, "2s")
+				Expect(result).To(Equal("Enter"))
+			})
+
+			It("does not insert post-command sleep for Then steps", func() {
+				steps := []cukesvhs.StepIR{
+					{Text: "I should see output", StepType: "Then", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Sleep, Args: []string{"2s"}}}, Duration: 5 * time.Second},
+				}
+				result := cukesvhs.RenderSteps(steps, "2s")
+				Expect(result).To(Equal("Sleep 2s"))
+				Expect(result).NotTo(ContainSubstring("Sleep 5s"))
+			})
+
+			It("preserves backward compatibility with Duration zero", func() {
+				steps := []cukesvhs.StepIR{
+					{Text: "step one", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Down}, {Type: cukesvhs.Enter}}},
+					{Text: "step two", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}}},
+				}
+				result := cukesvhs.RenderSteps(steps, "2s")
+				lines := strings.Split(result, "\n")
+				Expect(lines).To(Equal([]string{"Down", "Enter", "Sleep 2s", "Enter"}))
+			})
+		})
+
+		Context("when a When step has Duration and is followed by another step", func() {
+			It("inserts both post-command sleep and inter-step sleep", func() {
+				steps := []cukesvhs.StepIR{
+					{Text: "I run the command", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Type, Args: []string{"100ms", "./cukes-vhs generate --all"}}}, Duration: 5 * time.Second},
+					{Text: "I press enter", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}}},
+				}
+				result := cukesvhs.RenderSteps(steps, "2s")
+				Expect(result).To(ContainSubstring("Sleep 5s"))
+				Expect(result).To(ContainSubstring("Sleep 2s"))
+			})
+		})
+	})
+
+	Describe("inter-step sleep uses default sleepDuration", func() {
 		Context("when StepIR.Duration is non-zero", func() {
-			It("uses StepIR.Duration for inter-step sleep", func() {
+			It("uses default sleepDuration for inter-step sleep regardless of Duration", func() {
 				steps := []cukesvhs.StepIR{
 					{Text: "step one", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}}},
 					{Text: "step two", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}}, Duration: 500 * time.Millisecond},
 				}
 				result := cukesvhs.RenderSteps(steps, "2s")
-				Expect(result).To(ContainSubstring("Sleep 500ms"))
-				Expect(result).NotTo(ContainSubstring("Sleep 2s"))
+				Expect(result).To(ContainSubstring("Sleep 2s"))
 			})
 		})
 

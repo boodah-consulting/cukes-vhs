@@ -305,3 +305,151 @@ var _ = Describe("StepIR Duration field", func() {
 		Expect(step.Duration).To(BeZero())
 	})
 })
+
+var _ = Describe("ApplyBenchmarkTimings", func() {
+	Context("when timings match When step commands", func() {
+		It("populates Duration on When steps with matching benchmark timings", func() {
+			scenario := cukesvhs.ScenarioIR{
+				Name:    "Benchmark test",
+				Feature: "Benchmark",
+				DemoSteps: []cukesvhs.StepIR{
+					{
+						Text:         `I type "./cukes-vhs generate --all"`,
+						StepType:     "When",
+						Translatable: true,
+						Commands:     []cukesvhs.VHSCommand{{Type: cukesvhs.Type, Args: []string{"100ms", "./cukes-vhs generate --all"}}},
+					},
+				},
+			}
+			timings := map[string]cukesvhs.CommandTiming{
+				"./cukes-vhs generate --all": {Command: "./cukes-vhs generate --all", Duration: 2 * time.Second, Runs: 3},
+			}
+			cukesvhs.ApplyBenchmarkTimings(&scenario, timings)
+			Expect(scenario.DemoSteps[0].Duration).To(BeNumerically(">", 0))
+		})
+	})
+
+	Context("when step is a Then step", func() {
+		It("does not modify Then steps", func() {
+			scenario := cukesvhs.ScenarioIR{
+				Name:    "Then test",
+				Feature: "Benchmark",
+				DemoSteps: []cukesvhs.StepIR{
+					{
+						Text:         "I should see the output",
+						StepType:     "Then",
+						Translatable: true,
+						Commands:     []cukesvhs.VHSCommand{{Type: cukesvhs.Sleep, Args: []string{"2s"}}},
+					},
+				},
+			}
+			timings := map[string]cukesvhs.CommandTiming{
+				"./cukes-vhs generate --all": {Command: "./cukes-vhs generate --all", Duration: 2 * time.Second, Runs: 3},
+			}
+			cukesvhs.ApplyBenchmarkTimings(&scenario, timings)
+			Expect(scenario.DemoSteps[0].Duration).To(BeZero())
+		})
+	})
+
+	Context("when scenario has SetupSteps", func() {
+		It("does not modify SetupSteps", func() {
+			scenario := cukesvhs.ScenarioIR{
+				Name:    "Setup test",
+				Feature: "Benchmark",
+				SetupSteps: []cukesvhs.StepIR{
+					{
+						Text:         "the app is running",
+						StepType:     "Given",
+						Translatable: true,
+						Commands:     []cukesvhs.VHSCommand{{Type: cukesvhs.Type, Args: []string{"100ms", "./cukes-vhs list"}}},
+					},
+				},
+				DemoSteps: []cukesvhs.StepIR{
+					{
+						Text:         "I press enter",
+						StepType:     "When",
+						Translatable: true,
+						Commands:     []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}},
+					},
+				},
+			}
+			timings := map[string]cukesvhs.CommandTiming{
+				"./cukes-vhs list": {Command: "./cukes-vhs list", Duration: 1 * time.Second, Runs: 3},
+			}
+			cukesvhs.ApplyBenchmarkTimings(&scenario, timings)
+			Expect(scenario.SetupSteps[0].Duration).To(BeZero())
+		})
+	})
+
+	Context("when a When step has multiple matching commands", func() {
+		It("sums durations for multi-command When steps", func() {
+			scenario := cukesvhs.ScenarioIR{
+				Name:    "Multi-command test",
+				Feature: "Benchmark",
+				DemoSteps: []cukesvhs.StepIR{
+					{
+						Text:         "I run two commands",
+						StepType:     "When",
+						Translatable: true,
+						Commands: []cukesvhs.VHSCommand{
+							{Type: cukesvhs.Type, Args: []string{"100ms", "./cukes-vhs list"}},
+							{Type: cukesvhs.Enter},
+							{Type: cukesvhs.Type, Args: []string{"100ms", "./cukes-vhs generate --all"}},
+						},
+					},
+				},
+			}
+			timings := map[string]cukesvhs.CommandTiming{
+				"./cukes-vhs list":           {Command: "./cukes-vhs list", Duration: 1 * time.Second, Runs: 3},
+				"./cukes-vhs generate --all": {Command: "./cukes-vhs generate --all", Duration: 2 * time.Second, Runs: 3},
+			}
+			cukesvhs.ApplyBenchmarkTimings(&scenario, timings)
+			Expect(scenario.DemoSteps[0].Duration).To(BeNumerically(">", 3*time.Second))
+		})
+	})
+
+	Context("when no timings match step commands", func() {
+		It("leaves Duration zero for steps with no matching timings", func() {
+			scenario := cukesvhs.ScenarioIR{
+				Name:    "No match test",
+				Feature: "Benchmark",
+				DemoSteps: []cukesvhs.StepIR{
+					{
+						Text:         "I press enter",
+						StepType:     "When",
+						Translatable: true,
+						Commands:     []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}},
+					},
+				},
+			}
+			timings := map[string]cukesvhs.CommandTiming{
+				"./cukes-vhs list": {Command: "./cukes-vhs list", Duration: 1 * time.Second, Runs: 3},
+			}
+			cukesvhs.ApplyBenchmarkTimings(&scenario, timings)
+			Expect(scenario.DemoSteps[0].Duration).To(BeZero())
+		})
+	})
+
+	Context("buffer calculation", func() {
+		It("applies buffer to benchmark duration", func() {
+			scenario := cukesvhs.ScenarioIR{
+				Name:    "Buffer test",
+				Feature: "Benchmark",
+				DemoSteps: []cukesvhs.StepIR{
+					{
+						Text:         `I type "./cukes-vhs list"`,
+						StepType:     "When",
+						Translatable: true,
+						Commands:     []cukesvhs.VHSCommand{{Type: cukesvhs.Type, Args: []string{"100ms", "./cukes-vhs list"}}},
+					},
+				},
+			}
+			timings := map[string]cukesvhs.CommandTiming{
+				"./cukes-vhs list": {Command: "./cukes-vhs list", Duration: 1 * time.Second, Runs: 3},
+			}
+			cukesvhs.ApplyBenchmarkTimings(&scenario, timings)
+			expected := time.Duration(float64(1*time.Second)*1.2) + 500*time.Millisecond
+			Expect(scenario.DemoSteps[0].Duration).To(Equal(expected))
+		})
+	})
+})
