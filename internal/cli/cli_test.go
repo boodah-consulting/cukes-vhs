@@ -424,6 +424,76 @@ var _ = Describe("cukesvhs CLI", func() {
 				Expect(errOut.String()).To(ContainSubstring("unknown flag"))
 			})
 		})
+
+		Context("--benchmark flag", func() {
+			It("accepts --benchmark flag", func() {
+				var out, errOut bytes.Buffer
+				code := Run([]string{
+					"generate",
+					"--all",
+					"--features", "testdata/features/",
+					"--scenarios-dir", "testdata/scenarios/",
+					"--output", tmpDir,
+					"--benchmark",
+				}, &out, &errOut)
+
+				Expect(code).To(Equal(0))
+			})
+
+			It("accepts --benchmark-runs flag with integer value", func() {
+				var out, errOut bytes.Buffer
+				code := Run([]string{
+					"generate",
+					"--all",
+					"--features", "testdata/features/",
+					"--scenarios-dir", "testdata/scenarios/",
+					"--output", tmpDir,
+					"--benchmark-runs", "5",
+				}, &out, &errOut)
+
+				Expect(code).To(Equal(0))
+			})
+
+			It("defaults --benchmark-runs to 3", func() {
+				var errOut bytes.Buffer
+				opts, err := parseGenerateFlags([]string{"--output", "/tmp", "--all"}, &errOut)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(*opts.benchmarkRuns).To(Equal(3))
+			})
+
+		})
+
+		Context("benchmark pipeline integration", func() {
+			It("generates tapes without benchmark by default", func() {
+				var out, errOut bytes.Buffer
+				code := Run([]string{
+					"generate",
+					"--all",
+					"--features", "testdata/features/",
+					"--scenarios-dir", "testdata/scenarios/",
+					"--output", tmpDir,
+				}, &out, &errOut)
+
+				Expect(code).To(Equal(0))
+				Expect(out.String()).NotTo(ContainSubstring("Benchmarking"))
+			})
+
+			It("applies benchmark timings when --benchmark is passed", func() {
+				var out, errOut bytes.Buffer
+				code := Run([]string{
+					"generate",
+					"--all",
+					"--features", "testdata/features/",
+					"--scenarios-dir", "testdata/scenarios/",
+					"--output", tmpDir,
+					"--benchmark",
+					"--benchmark-runs", "1",
+				}, &out, &errOut)
+
+				Expect(code).To(Equal(0))
+				Expect(out.String()).To(ContainSubstring("Benchmarking"))
+			})
+		})
 	})
 
 	Describe("slugify helper", func() {

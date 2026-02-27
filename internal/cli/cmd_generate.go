@@ -20,6 +20,8 @@ func newGenerateCmd() *cobra.Command {
 	var outputDir string
 	var configSource string
 	var verbose bool
+	var benchmarkEnabled bool
+	var benchmarkRuns int
 
 	cmd := &cobra.Command{
 		Use:   "generate",
@@ -64,6 +66,19 @@ or scenario name.`,
 			results := cukesvhs.AnalyseScenarios(allScenarios)
 			filtered := filterResults(results, allScenarios, generateAll, featureFilter, scenarioFilter)
 
+			if benchmarkEnabled {
+				fmt.Fprintf(out, "Benchmarking...\n")
+				for i := range filtered {
+					scenario := filtered[i].scenario
+					timings, benchErr := cukesvhs.BenchmarkScenario(scenario, benchmarkRuns)
+					if benchErr != nil {
+						fmt.Fprintf(errOut, "Warning: benchmark failed for %s: %v\n", scenario.Name, benchErr)
+						continue
+					}
+					cukesvhs.ApplyBenchmarkTimings(&filtered[i].scenario, timings)
+				}
+			}
+
 			fmt.Fprintf(out, "Generating...\n")
 
 			cfg := generateConfig{
@@ -88,19 +103,22 @@ or scenario name.`,
 	cmd.Flags().StringVar(&outputDir, "output", "", "Output directory (required)")
 	cmd.Flags().StringVar(&configSource, "config-source", "config/config.tape", "Path to config tape file")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "Verbose output")
-
+	cmd.Flags().BoolVar(&benchmarkEnabled, "benchmark", false, "Run benchmarks to determine command timing")
+	cmd.Flags().IntVar(&benchmarkRuns, "benchmark-runs", 3, "Number of benchmark runs per command")
 	return cmd
 }
 
 type generateOptions struct {
-	generateAll    *bool
-	featureFilter  *string
-	scenarioFilter *string
-	featuresDir    *string
-	scenariosDir   *string
-	outputDir      *string
-	configSource   *string
-	verbose        *bool
+	generateAll      *bool
+	featureFilter    *string
+	scenarioFilter   *string
+	featuresDir      *string
+	scenariosDir     *string
+	outputDir        *string
+	configSource     *string
+	verbose          *bool
+	benchmarkEnabled *bool
+	benchmarkRuns    *int
 }
 
 func parseGenerateFlags(args []string, errOut io.Writer) (*generateOptions, error) {
@@ -110,14 +128,16 @@ func parseGenerateFlags(args []string, errOut io.Writer) (*generateOptions, erro
 	cmd.SetErr(errOut)
 
 	opts := &generateOptions{
-		generateAll:    new(bool),
-		featureFilter:  new(string),
-		scenarioFilter: new(string),
-		featuresDir:    new(string),
-		scenariosDir:   new(string),
-		outputDir:      new(string),
-		configSource:   new(string),
-		verbose:        new(bool),
+		generateAll:      new(bool),
+		featureFilter:    new(string),
+		scenarioFilter:   new(string),
+		featuresDir:      new(string),
+		scenariosDir:     new(string),
+		outputDir:        new(string),
+		configSource:     new(string),
+		verbose:          new(bool),
+		benchmarkEnabled: new(bool),
+		benchmarkRuns:    new(int),
 	}
 
 	if err := cmd.ParseFlags(normaliseArgs(args)); err != nil {
@@ -155,6 +175,14 @@ func parseGenerateFlags(args []string, errOut io.Writer) (*generateOptions, erro
 		return nil, err
 	}
 	*opts.verbose, err = cmd.Flags().GetBool("verbose")
+	if err != nil {
+		return nil, err
+	}
+	*opts.benchmarkEnabled, err = cmd.Flags().GetBool("benchmark")
+	if err != nil {
+		return nil, err
+	}
+	*opts.benchmarkRuns, err = cmd.Flags().GetInt("benchmark-runs")
 	if err != nil {
 		return nil, err
 	}
