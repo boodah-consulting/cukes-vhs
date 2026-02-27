@@ -4,5 +4,6 @@ package cukesvhs
 
 var (
 	RenderCommand     = renderCommand
+	RenderSteps       = renderSteps
 	ResolveConfigPath = resolveConfigPath
 )

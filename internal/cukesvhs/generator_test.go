@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -378,6 +379,57 @@ var _ = Describe("renderCommand", func() {
 		Entry("Sleep with duration", cukesvhs.VHSCommand{Type: cukesvhs.Sleep, Args: []string{"3s"}}, "Sleep 3s"),
 		Entry("Generic command with arg", cukesvhs.VHSCommand{Type: "Custom", Args: []string{"arg1"}}, "Custom arg1"),
 	)
+})
+
+var _ = Describe("renderSteps", func() {
+	Describe("per-step Duration", func() {
+		Context("when StepIR.Duration is non-zero", func() {
+			It("uses StepIR.Duration for inter-step sleep", func() {
+				steps := []cukesvhs.StepIR{
+					{Text: "step one", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}}},
+					{Text: "step two", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}}, Duration: 500 * time.Millisecond},
+				}
+				result := cukesvhs.RenderSteps(steps, "2s")
+				Expect(result).To(ContainSubstring("Sleep 500ms"))
+				Expect(result).NotTo(ContainSubstring("Sleep 2s"))
+			})
+		})
+
+		Context("when StepIR.Duration is zero", func() {
+			It("falls back to default sleepDuration", func() {
+				steps := []cukesvhs.StepIR{
+					{Text: "step one", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}}},
+					{Text: "step two", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}}},
+				}
+				result := cukesvhs.RenderSteps(steps, "2s")
+				Expect(result).To(ContainSubstring("Sleep 2s"))
+			})
+		})
+	})
+
+	Describe("double-sleep prevention for observation steps", func() {
+		It("does not insert inter-step sleep before Then steps that have Sleep commands", func() {
+			steps := []cukesvhs.StepIR{
+				{Text: "I do something", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}}},
+				{Text: "I should see output", StepType: "Then", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Sleep, Args: []string{"2s"}}}},
+			}
+			result := cukesvhs.RenderSteps(steps, "2s")
+			sleepCount := strings.Count(result, "Sleep 2s")
+			Expect(sleepCount).To(Equal(1))
+		})
+	})
+
+	Describe("backward compatibility", func() {
+		It("produces unchanged output when no Duration is set on any step", func() {
+			steps := []cukesvhs.StepIR{
+				{Text: "step one", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Down}, {Type: cukesvhs.Enter}}},
+				{Text: "step two", StepType: "When", Translatable: true, Commands: []cukesvhs.VHSCommand{{Type: cukesvhs.Enter}}},
+			}
+			result := cukesvhs.RenderSteps(steps, "2s")
+			lines := strings.Split(result, "\n")
+			Expect(lines).To(Equal([]string{"Down", "Enter", "Sleep 2s", "Enter"}))
+		})
+	})
 })
 
 var _ = Describe("WriteTape", func() {

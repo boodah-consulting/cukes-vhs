@@ -184,8 +184,13 @@ func renderSteps(steps []StepIR, sleepDuration string) string {
 			continue
 		}
 
-		if lastHadCommands {
-			lines = append(lines, "Sleep "+sleepDuration)
+		if lastHadCommands && !stepHasSleep(step) {
+			pause := sleepDuration
+			if step.Duration != 0 {
+				pause = step.Duration.String()
+			}
+
+			lines = append(lines, "Sleep "+pause)
 		}
 
 		for _, cmd := range step.Commands {
@@ -196,6 +201,16 @@ func renderSteps(steps []StepIR, sleepDuration string) string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func stepHasSleep(step StepIR) bool {
+	for _, cmd := range step.Commands {
+		if cmd.Type == Sleep {
+			return true
+		}
+	}
+
+	return false
 }
 
 func renderCommand(cmd VHSCommand) string {

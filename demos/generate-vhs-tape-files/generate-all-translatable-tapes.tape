@@ -13,7 +13,6 @@ Type@100ms "./cukes-vhs generate --all --output /tmp/tapes/"
 Sleep 2s
 Enter
 Sleep 2s
-Sleep 2s
 
 Sleep 3s
 Ctrl+C
